@@ -1,1 +1,1 @@
-﻿export default function GlobalPlayer() { return null; }
+export default function GlobalPlayer() { return null; }
