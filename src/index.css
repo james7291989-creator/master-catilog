@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { 
+  @apply text-text font-body; 
+  background-image: url('/bg.jpg'); 
+  background-size: cover; 
+  background-position: center; 
+  background-attachment: fixed; 
+  background-color: #050505; 
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 0px rgba(74, 222, 128, 0)); }
+  50% { transform: scale(1.03); filter: brightness(1.15) drop-shadow(0 0 20px rgba(74, 222, 128, 0.3)); }
+}
+.animate-breathe { animation: breathe 6s ease-in-out infinite; transform-origin: right center; }

@@ -1,0 +1,35 @@
+﻿[
+  {
+    "id": "trk_01",
+    "title": "My Real Testimony",
+    "bpm": 88,
+    "key": "F# Minor",
+    "genre": "Cinematic Hip-Hop",
+    "moods": ["Dark", "Survival", "Gritty"],
+    "hook": "For the scene where the protagonist realizes there is no way out but through.",
+    "url": "/audio/my testimony.wav",
+    "stems": []
+  },
+  {
+    "id": "trk_02",
+    "title": "Prison Gate Hustle",
+    "bpm": 92,
+    "key": "C Minor",
+    "genre": "Rap / Trap",
+    "moods": ["Aggressive", "Tension", "Betrayal"],
+    "hook": "High-stakes street operations right before the raid.",
+    "url": "/audio/Prison Gate Hustle (Southside Fast R...wav",
+    "stems": []
+  },
+  {
+    "id": "trk_03",
+    "title": "East Side Cahokia",
+    "bpm": 110,
+    "key": "G Minor",
+    "genre": "Midwest Rap",
+    "moods": ["Triumph", "Energy", "Raw"],
+    "hook": "The victory lap after surviving the concrete box.",
+    "url": "/audio/East Side Cahokia young pitbull.wav",
+    "stems": []
+  }
+]
