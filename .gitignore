@@ -25,3 +25,10 @@ dist-ssr
 
 .vercel
 .env*
+
+# Audio files - too large for git
+public/audio/
+*.wav
+*.mp3
+*.flac
+*.aiff
