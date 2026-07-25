@@ -71,7 +71,7 @@ export default function Hero() {
 
             <div className="grid grid-cols-2 gap-4 mb-8">
               {[
-                { label: "BROADCAST MASTERS", value: "27", color: "cyan" },
+                { label: "BROADCAST MASTERS", value: "12", color: "cyan" },
                 { label: "WAV 24-BIT STEMS", value: "7", color: "yellow" },
                 { label: "LUFS MASTERED", value: "-14", color: "cyan" },
                 { label: "TURNAROUND", value: "24HR", color: "yellow" }
