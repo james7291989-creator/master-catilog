@@ -4,9 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node generate-tracklist.js",
     "dev": "vite",
-    "prebuild": "node generate-tracklist.js",
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview"
