@@ -1,25 +1,26 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
+const supabaseUrl = "https://llbwsbhhomvnjfjuswxh.supabase.co";
+
 const tracks = [
-  { id: "trk_01", title: "Baby You There", master: "/audio/Baby You There.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_02", title: "How It Was", master: "/audio/How It Was.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_03", title: "My Soul", master: "/audio/My Soul.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_04", title: "Our System", master: "/audio/Our System.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_05", title: "Porch Lights and Pistol Smoke", master: "/audio/Porch Lights and Pistol Smoke.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_06", title: "Real Life", master: "/audio/Real Life.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_07", title: "Real Story", master: "/audio/Real Story.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_08", title: "Rolling 55", master: "/audio/Rolling 55.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_09", title: "Running", master: "/audio/Running.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_10", title: "Shattered Kingdom", master: "/audio/Shattered Kingdom.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_11", title: "Sixteen With A Purpose", master: "/audio/Sixteen With A Purpose.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_12", title: "Survived", master: "/audio/Survived.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null }
+  { id: "trk_01", title: "Baby You There", master: `${supabaseUrl}/storage/v1/object/public/audio/Baby You There.wav` },
+  { id: "trk_02", title: "How It Was", master: `${supabaseUrl}/storage/v1/object/public/audio/How It Was.wav` },
+  { id: "trk_03", title: "My Soul", master: `${supabaseUrl}/storage/v1/object/public/audio/My Soul.wav` },
+  { id: "trk_04", title: "Our System", master: `${supabaseUrl}/storage/v1/object/public/audio/Our System.wav` },
+  { id: "trk_05", title: "Porch Lights and Pistol Smoke", master: `${supabaseUrl}/storage/v1/object/public/audio/Porch Lights and Pistol Smoke.wav` },
+  { id: "trk_06", title: "Real Life", master: `${supabaseUrl}/storage/v1/object/public/audio/Real Life.wav` },
+  { id: "trk_07", title: "Real Story", master: `${supabaseUrl}/storage/v1/object/public/audio/Real Story.wav` },
+  { id: "trk_08", title: "Rolling 55", master: `${supabaseUrl}/storage/v1/object/public/audio/Rolling 55.wav` },
+  { id: "trk_09", title: "Running", master: `${supabaseUrl}/storage/v1/object/public/audio/Running.wav` },
+  { id: "trk_10", title: "Shattered Kingdom", master: `${supabaseUrl}/storage/v1/object/public/audio/Shattered Kingdom.wav` },
+  { id: "trk_11", title: "Sixteen With A Purpose", master: `${supabaseUrl}/storage/v1/object/public/audio/Sixteen With A Purpose.wav` },
+  { id: "trk_12", title: "Survived", master: `${supabaseUrl}/storage/v1/object/public/audio/Survived.wav` }
 ];
 
 export default function TheVault() {
   const [activeTrack, setActiveTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [openStems, setOpenStems] = useState(null);
   
   const playTrack = (track) => {
     setActiveTrack(track);
@@ -37,7 +38,6 @@ export default function TheVault() {
       <div className="flex flex-col gap-2">
         {tracks.map(track => {
           const isActive = activeTrack?.id === track.id;
-          const isStemsOpen = openStems === track.id;
           return (
             <motion.div key={track.id} layout className="group relative flex flex-col rounded-2xl border backdrop-blur-xl transition-all duration-500 overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.3)] bg-black/40 border-cyan-400/20 hover:border-cyan-400/50">
               <div className="flex items-center justify-between p-4">
