@@ -17,10 +17,17 @@ export default {
         breathe: {
           '0%, 100%': { opacity: '0.5', transform: 'scale(1)' },
           '50%': { opacity: '0.7', transform: 'scale(1.03)' }
+        },
+        equalizer: {
+          '0%, 100%': { transform: 'scaleY(0.3)', opacity: '0.6' },
+          '25%': { transform: 'scaleY(1)', opacity: '1' },
+          '50%': { transform: 'scaleY(0.5)', opacity: '0.8' },
+          '75%': { transform: 'scaleY(0.8)', opacity: '0.9' }
         }
       },
       animation: {
-        breathe: 'breathe 8s ease-in-out infinite'
+        breathe: 'breathe 8s ease-in-out infinite',
+        equalizer: 'equalizer 0.8s ease-in-out infinite'
       }
     }
   }

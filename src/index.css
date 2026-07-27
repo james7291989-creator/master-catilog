@@ -2,17 +2,39 @@
 @tailwind components;
 @tailwind utilities;
 
-body { 
-  @apply text-text font-body; 
-  background-image: url('/bg.jpg'); 
-  background-size: cover; 
-  background-position: center; 
-  background-attachment: fixed; 
-  background-color: #050505; 
+body {
+  --tw-text-opacity: 1;
+  color: rgb(245 245 240 / var(--tw-text-opacity, 1));
+  background-color: #050505;
+  background-image: url(/bg.jpg);
+  background-position: 50%;
+  background-size: cover;
+  background-attachment: fixed;
+  font-family: Inter, sans-serif;
 }
 
 @keyframes breathe {
-  0%, 100% { transform: scale(1); filter: brightness(1) drop-shadow(0 0 0px rgba(74, 222, 128, 0)); }
-  50% { transform: scale(1.03); filter: brightness(1.15) drop-shadow(0 0 20px rgba(74, 222, 128, 0.3)); }
+  0%,
+  100% {
+    filter: brightness() drop-shadow(0 0 #4ade8000);
+    transform: scale(1);
+  }
+  50% {
+    filter: brightness(1.15) drop-shadow(0 0 20px #4ade804d);
+    transform: scale(1.03);
+  }
 }
-.animate-breathe { animation: breathe 6s ease-in-out infinite; transform-origin: right center; }
+
+.animate-breathe {
+  transform-origin: 100%;
+  animation: 6s ease-in-out infinite breathe;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

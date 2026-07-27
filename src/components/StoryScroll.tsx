@@ -1,1 +1,0 @@
-export default function StoryScroll() { return <div className='py-24 text-center text-zinc-500 border-y border-white/5 bg-black/50 backdrop-blur-md'><h2 className='text-3xl font-black mb-4'>STORY & CREDITS ENGINE INITIALIZED</h2><p>Framer Motion scroll sequence ready for deployment.</p></div>; }
