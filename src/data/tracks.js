@@ -75,7 +75,10 @@ const tracks = [
     { label: "Vocals", file: "/audio/Yeah\u2026 (uh).wav-vocals.wav" }
   ], tvMix: "/audio/Yeah\u2026 (uh)_TV.wav", broadcastClear: null, servicedInstrumental: null },
   { id: "trk_35", title: "Yeah... we grew up together... best frie", master: "/audio/Yeah... we grew up together... best frie.wav", stems: [], tvMix: "/audio/Yeah... we grew up together... best frie_TV.wav", broadcastClear: null, servicedInstrumental: null },
-  { id: "trk_34", title: "Yeah... we grew up together... best frie (1)", master: "/audio/Yeah... we grew up together... best frie (1).wav", stems: [], tvMix: "/audio/Yeah... we grew up together... best frie (1)_TV.wav", broadcastClear: null, servicedInstrumental: null }
+  { id: "trk_34", title: "Yeah... we grew up together... best frie (1)", master: "/audio/Yeah... we grew up together... best frie (1).wav", stems: [], tvMix: "/audio/Yeah... we grew up together... best frie (1)_TV.wav", broadcastClear: null, servicedInstrumental: null },
+  { id: "trk_40", title: "Real LOVE", master: "/audio/Real Love.mp3", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
+  { id: "trk_41", title: "Her Words", master: "/audio/Her Words.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null },
+  { id: "trk_42", title: "Balcony Nights", master: "/audio/Balcony Nights.wav", stems: [], tvMix: null, broadcastClear: null, servicedInstrumental: null }
 ];
 
 export default tracks;

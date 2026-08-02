@@ -2,39 +2,54 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   TASK 1: SENSORY RESTRICTION & THE TACTILE VOID
+   Pure black background, film grain overlay, hidden scrollbars
+   ============================================================ */
+
 body {
-  --tw-text-opacity: 1;
-  color: rgb(245 245 240 / var(--tw-text-opacity, 1));
-  background-color: #050505;
-  background-image: url(/bg.jpg);
-  background-position: 50%;
-  background-size: cover;
-  background-attachment: fixed;
+  background: #000;
+  color: rgb(245 245 240);
   font-family: Inter, sans-serif;
 }
 
-@keyframes breathe {
-  0%,
-  100% {
-    filter: brightness() drop-shadow(0 0 #4ade8000);
-    transform: scale(1);
+/* Film grain overlay — tactile void, 3% opacity */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 256px 256px;
+}
+
+/* Hide scrollbar globally while maintaining scroll */
+html {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+html::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hidden scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Equalizer bars for PlayerBar */
+@keyframes equalizer {
+  0%, 100% {
+    transform: scaleY(0.3);
   }
   50% {
-    filter: brightness(1.15) drop-shadow(0 0 20px #4ade804d);
-    transform: scale(1.03);
-  }
-}
-
-.animate-breathe {
-  transform-origin: 100%;
-  animation: 6s ease-in-out infinite breathe;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
+    transform: scaleY(1);
   }
 }
