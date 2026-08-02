@@ -65,6 +65,37 @@ export default function Vault() {
     return data?.publicUrl || `/${fileName}`;
   }
 
+  // =============================================================================
+  // ⚡ BLOB FETCH OVERRIDE — FORCED LOCAL SAVE
+  // Standard HTML `<a download>` fails on cross-origin URLs (Supabase bucket).
+  // This async handler streams the asset as a Blob, mounts a programmatic
+  // anchor, triggers the click, unmounts, and revokes the object URL.
+  // =============================================================================
+  async function handleDownload(track) {
+    const url = resolveTrackAudioUrl(track);
+    if (!url || url === '#') return;
+
+    const fileName = track.file_name || 'master-audio.mp3';
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+
+      // Programmatic anchor mount -> click -> unmount -> revoke
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(objectUrl);
+    } catch (error) {
+      console.error('BLOB FETCH FAILED:', error);
+      setAudioError('DOWNLOAD FAILED — CHECK BUCKET PERMISSIONS');
+    }
+  }
+
   // 3. BULLETPROOF AUDIO BINDING
   function handlePlayClick(track) {
     setAudioError(null);
@@ -151,7 +182,7 @@ export default function Vault() {
       </div>
 
       {/* PHASE 2: MOOD MATRIX FILTER CHIPS — horizontally scrollable, hidden scrollbar */}
-      <div className="flex flex-nowrap items-center space-x-3 overflow-x-auto whitespace-nowrap overflow-y-hidden scroll-smooth py-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full mb-6">
+      <div className="flex overflow-x-auto whitespace-nowrap scrollbar-hide py-2 flex-nowrap items-center space-x-3 overflow-y-hidden scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full mb-6">
         {uniqueMoods.map((mood) => {
           const isActive = activeFilter === mood;
           return (
@@ -162,8 +193,8 @@ export default function Vault() {
               aria-pressed={isActive}
               className={`flex-shrink-0 px-4 py-1.5 rounded-full text-xs font-bold tracking-wide transition-all duration-200 border cursor-pointer backdrop-blur-md whitespace-nowrap ${
                 isActive
-                  ? 'bg-emerald-600/20 text-emerald-400 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
-                  : 'bg-zinc-900/50 text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-200'
+                  ? 'bg-emerald-600 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                  : 'bg-transparent text-zinc-400 border-zinc-800 hover:border-zinc-500 hover:text-zinc-200'
               }`}
             >
               {mood}
@@ -239,17 +270,14 @@ export default function Vault() {
                 {/* ACTION — BIFURCATED CONVERSION FUNNEL */}
                 <div className="md:col-span-2 flex items-center justify-end space-x-3 w-full md:w-auto mt-4 md:mt-0">
                   {/* [ACTION A: ASSET ACQUISITION] — Temp MP3 (Secondary) */}
-                  <a
-                    href={resolveTrackAudioUrl(track)}
-                    download={track.file_name || `temp-master.mp3`}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <button
+                    onClick={() => { handleDownload(track); hapticClick(); }}
                     aria-label="Download Temp MP3"
                     className="inline-flex items-center justify-center bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-semibold py-2 px-4 rounded-lg transition-all border border-zinc-700 hover:border-zinc-400 text-xs shadow-sm whitespace-nowrap focus:ring-2 focus:ring-zinc-500 outline-none"
                   >
                     Temp MP3
                     <Download size={16} className="ml-2" aria-hidden="true" />
-                  </a>
+                  </button>
                   {/* [ACTION B: LICENSE PROTOCOL] — License Track (Primary) */}
                   <button
                     onClick={() => { setLicenseTrack(track); hapticClick(); }}

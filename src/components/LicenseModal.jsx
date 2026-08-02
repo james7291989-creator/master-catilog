@@ -1,8 +1,21 @@
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, ShieldCheck, Crown } from 'lucide-react';
+import { ShieldCheck, Crown, CheckCircle2 } from 'lucide-react';
 
 // ⚡ APEX CTO OVERRIDE: ADMIN CONTACT — music supervisor inbox
 const ADMIN_EMAIL = 'james72919879@gmail.com';
+
+// Sync budget tiers for the dropdown
+const BUDGET_RANGES = [
+  'Under $5,000',
+  '$5,000 – $15,000',
+  '$15,000 – $50,000',
+  '$50,000 – $100,000',
+  '$100,000+',
+];
+
+const inputBaseClass =
+  'w-full bg-black/60 border border-zinc-800 text-white text-sm px-4 py-3 placeholder-zinc-600 outline-none transition-all duration-200 focus:border-green-500 focus:ring-1 focus:ring-green-500/40';
 
 export default function LicenseModal({ isOpen, onClose, track }) {
   const trackTitle = track?.track_title
@@ -12,16 +25,32 @@ export default function LicenseModal({ isOpen, onClose, track }) {
         .trim()
     : 'Untitled Track';
 
-  // ⚡ LIVE MAILTO PIPELINE — no dummy state toggle, no dead end.
-  // Subject dynamically injects the active track title; body pre-fills
-  // a professional clearance inquiry so the supervisor only hits Send.
-  const mailtoHref = [
-    `mailto:${ADMIN_EMAIL}`,
-    `?subject=${encodeURIComponent(`Sync License Inquiry - ${trackTitle}`)}`,
-    `&body=${encodeURIComponent(
-      `Hi Rodney,\n\nI'm reaching out regarding a sync licensing inquiry for the master recording "${trackTitle}".\n\nI'd like to discuss exclusive sync rights, 24-bit stem delivery, and/or custom modifications for this track.\n\nPlease let me know the next steps.\n\nBest regards,\n[Your Name]\n[Company / Network]\n[Phone Number]`
-    )}`,
-  ].join('');
+  // ⚡ INLINE LEAD CAPTURE — zero-friction form state
+  const [formData, setFormData] = useState({
+    fullName: '',
+    company: '',
+    productionTitle: '',
+    budgetRange: '',
+    projectDetails: '',
+  });
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    // ⚡ Simulate async submission so the CTA can reflect a pending state
+    setTimeout(() => {
+      console.log(formData);
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+    }, 1200);
+  };
 
   return (
     <AnimatePresence>
@@ -65,32 +94,148 @@ export default function LicenseModal({ isOpen, onClose, track }) {
                   </div>
                 </div>
 
-                {/* Track Title Display */}
-                <div className="bg-black/60 border border-zinc-900 px-5 py-4">
-                  <p className="text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1">Selected Master</p>
-                  <p className="text-xl font-black tracking-tight text-white truncate">
-                    {trackTitle}
-                  </p>
-                </div>
+                {isSubmitted ? (
+                  /* =========================================================
+                     SUCCESS UI — application received
+                     ========================================================= */
+                  <div className="py-8 flex flex-col items-center text-center space-y-5">
+                    <div className="w-16 h-16 rounded-full bg-green-500/10 border border-green-500/40 flex items-center justify-center">
+                      <CheckCircle2 className="w-9 h-9 text-green-500" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-white font-black text-lg tracking-tight">
+                        APPLICATION RECEIVED.
+                      </p>
+                      <p className="text-green-400 font-bold text-sm tracking-wide">
+                        RODNEY A WILL CONTACT YOU SHORTLY.
+                      </p>
+                    </div>
+                    <button
+                      onClick={onClose}
+                      className="mt-2 w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-300 text-black font-black py-3.5 text-sm tracking-wider transition-all duration-200"
+                    >
+                      RETURN TO VAULT
+                    </button>
+                  </div>
+                ) : (
+                  /* =========================================================
+                     INLINE LEAD CAPTURE FORM
+                     ========================================================= */
+                  <>
+                    {/* Track Title Display */}
+                    <div className="bg-black/60 border border-zinc-900 px-5 py-4">
+                      <p className="text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1">Selected Master</p>
+                      <p className="text-xl font-black tracking-tight text-white truncate">
+                        {trackTitle}
+                      </p>
+                    </div>
 
-                {/* VIP Message */}
-                <div className="border-l-2 border-zinc-800 pl-4">
-                  <p className="text-sm text-zinc-400 leading-relaxed">
-                    To discuss exclusive sync rights, 24-bit stem delivery, or custom modifications for this master, contact Rodney directly.
-                  </p>
-                </div>
+                    {/* VIP Message */}
+                    <div className="border-l-2 border-zinc-800 pl-4">
+                      <p className="text-sm text-zinc-400 leading-relaxed">
+                        Submit your clearance application below. Rodney's team reviews every request personally.
+                      </p>
+                    </div>
 
-                {/* Primary CTA — LIVE MAILTO: opens the supervisor's email client
-                    with the track title + professional inquiry pre-filled */}
-                <div className="pt-2">
-                  <a
-                    href={mailtoHref}
-                    className="group w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-300 text-black font-black py-3.5 text-sm tracking-wider transition-all duration-200"
-                  >
-                    <Mail className="w-4 h-4" />
-                    FILL OUT CLEARANCE APPLICATION
-                  </a>
-                </div>
+                    {/* Inline Form */}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5">
+                          Full Name
+                        </label>
+                        <input
+                          type="text"
+                          name="fullName"
+                          value={formData.fullName}
+                          onChange={handleChange}
+                          required
+                          placeholder="Your full name"
+                          className={inputBaseClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5">
+                          Company / Studio
+                        </label>
+                        <input
+                          type="text"
+                          name="company"
+                          value={formData.company}
+                          onChange={handleChange}
+                          required
+                          placeholder="Company or studio name"
+                          className={inputBaseClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5">
+                          Production Title
+                        </label>
+                        <input
+                          type="text"
+                          name="productionTitle"
+                          value={formData.productionTitle}
+                          onChange={handleChange}
+                          required
+                          placeholder="Film, series, or project title"
+                          className={inputBaseClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5">
+                          Sync Budget Range
+                        </label>
+                        <select
+                          name="budgetRange"
+                          value={formData.budgetRange}
+                          onChange={handleChange}
+                          required
+                          className={`${inputBaseClass} appearance-none cursor-pointer`}
+                        >
+                          <option value="" disabled>
+                            Select a budget range
+                          </option>
+                          {BUDGET_RANGES.map((range) => (
+                            <option key={range} value={range} className="bg-zinc-900 text-white">
+                              {range}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1.5">
+                          Project Details
+                        </label>
+                        <textarea
+                          name="projectDetails"
+                          value={formData.projectDetails}
+                          onChange={handleChange}
+                          required
+                          rows={4}
+                          placeholder="Tell us about your project, usage, and timeline..."
+                          className={`${inputBaseClass} resize-none`}
+                        />
+                      </div>
+
+                      {/* Submit CTA */}
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className={`group w-full flex items-center justify-center gap-3 bg-white hover:bg-zinc-300 text-black font-black py-3.5 text-sm tracking-wider transition-all duration-200 ${
+                            isSubmitting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                          }`}
+                        >
+                          {isSubmitting ? '[ Submitting... ]' : 'SUBMIT APPLICATION'}
+                        </button>
+                      </div>
+                    </form>
+                  </>
+                )}
 
                 {/* Footer */}
                 <div className="pt-2 border-t border-zinc-900">

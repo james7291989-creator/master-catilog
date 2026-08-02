@@ -52,61 +52,46 @@ export default function PlayerBar() {
   // PILLAR 2: Ambient Audio Reactivity
   const spectrum = useAudioAnalyzer(audioRef.current, isPlaying && !!activeTrack);
 
+  // =============================================================================
+  // ⚡ REACTIVE PLAYBACK HOOK — CONTINUOUS PLAYLIST ENGINE
+  // The onEnded handler ONLY advances the global activeTrack (see store's
+  // playNextTrack). This hook reacts to that state change: it verifies the
+  // <audio> node exists, calls load() to mount the new src, then fires a
+  // promised-wrapped play(). This decouples the event from the DOM update,
+  // eliminating the race condition where .play() fired before src refreshed.
+  // =============================================================================
   useEffect(() => {
-    if (activeTrack && audioRef.current) {
+    if (activeTrack && isPlaying && audioRef.current) {
       setAudioReady(false);
       setAudioError(false);
 
       console.log("🚀 PLAYERBAR RECEIVING URL:", activeTrack.file_path);
 
-      // Reset and attempt playback
+      // Mount the new src to the DOM node first...
       audioRef.current.load();
-      if (isPlaying) {
-        audioRef.current.play().catch((e) => {
-          console.log('Playback blocked:', e);
+      // ...then play, wrapped in a promise so interruptions are caught.
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.error("Playback interrupted:", error);
           setAudioError(true);
         });
       }
     }
-  }, [activeTrack, isPlaying]);
+  }, [activeTrack]); // Only re-run when the track physically changes
 
+  // Pause the DOM node when the user hits stop (isPlaying flips false).
   useEffect(() => {
-    if (activeTrack && audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch((e) => {
-          console.log('Playback blocked:', e);
-          setAudioError(true);
-        });
-      } else {
-        audioRef.current.pause();
-      }
+    if (!isPlaying && audioRef.current) {
+      audioRef.current.pause();
     }
-  }, [isPlaying, activeTrack]);
+  }, [isPlaying]);
 
   // Reset timeline display whenever the track changes
   useEffect(() => {
     setCurrentTime(0);
     setDuration(0);
   }, [activeTrack]);
-
-  // =============================================================================
-  // ⚡ DOM AUDIO PLAYBACK FORCER — CONTINUOUS PLAYBACK LIFECYCLE
-  // When the active track changes, if the global state says it should be playing,
-  // force the browser to play. This guarantees auto-advance after onEnded fires
-  // and the store swaps in the next track (the src update alone is not enough).
-  // =============================================================================
-  useEffect(() => {
-    // When the active track changes, if the global state says it should be playing, force it.
-    if (activeTrack && isPlaying && audioRef.current) {
-      // Pause briefly to ensure the new src is fully mounted to the DOM
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.error("Auto-play prevented by browser:", error);
-        });
-      }
-    }
-  }, [activeTrack]); // Only re-run when the track physically changes
 
   // PILLAR 1: Session restoration notification
   useEffect(() => {

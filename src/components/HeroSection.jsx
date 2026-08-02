@@ -4,7 +4,6 @@ export default function HeroSection() {
   };
 
   // ⚡ APEX CTO OVERRIDE: ZERO DEAD LINKS — every nav item carries a live href.
-  // Vault / Software Dev -> in-page vault anchor (the engineering showcase)
   // Mission -> the mission page; Contact -> the admin inbox via mailto.
   const NAV_ITEMS = [
     { label: 'Vault', href: '#vault', onClick: scrollToVault },
@@ -28,9 +27,10 @@ export default function HeroSection() {
 
       {/* Minimal nav — stripped of all color */}
       <nav className="relative z-20 flex items-center justify-between p-6 lg:p-8">
-        <h1 className="text-2xl font-black tracking-tighter text-white">
+        {/* Wordmark — demoted from h1: the sync tagline is now the single page h1 */}
+        <p className="text-2xl font-black tracking-tighter text-white">
           RodneyA
-        </h1>
+        </p>
         <ul className="hidden md:flex items-center space-x-8 text-sm font-medium text-zinc-500">
           {NAV_ITEMS.map(({ label, href, onClick }) => (
             <li key={label}>
@@ -50,23 +50,23 @@ export default function HeroSection() {
         </div>
       </nav>
 
-      {/* Hero Content — static, monolithic, no 3D tricks */}
+      {/* Hero Content — sync-focused, zero engineering copy */}
       <div className="relative z-10 min-h-screen flex items-center">
         <div className="container mx-auto px-8 lg:px-16 max-w-7xl">
           <div className="max-w-2xl">
-            {/* Utility Subheadline — high contrast, above the name */}
-            <p className="text-emerald-400 uppercase tracking-widest text-xs md:text-sm font-bold mb-4">
+            {/* PRIMARY TAGLINE — H1: visually dominant, display-block */}
+            <h1 className="text-4xl md:text-6xl font-black tracking-tighter text-white uppercase leading-none mb-4">
               Premium Sync-Ready Master Recordings for Film & Television
-            </p>
+            </h1>
 
-            {/* Name — MASSIVE, dominating, pure white */}
-            <h2 className="text-6xl md:text-8xl font-black tracking-tighter text-white mb-4 leading-none">
+            {/* ARTIST NAME — H2: highly styled, emerald accent */}
+            <h2 className="text-emerald-400 uppercase tracking-[0.2em] text-xl md:text-2xl font-black mb-6">
               James Rodney Arms Jr.
             </h2>
 
-            {/* Mission Statement — no colored tags, clean and authoritative */}
+            {/* MISSION STATEMENT — 100% sync focus, zero legal friction */}
             <p className="text-lg md:text-xl text-zinc-400 leading-relaxed max-w-2xl mb-8">
-              I don't just write code or compose music—I build escape routes. Every piece of digital architecture I engineer and every cinematic track I produce is designed to fund a revolution for the next generation. I offer a 100% independent, one-stop licensing vault with zero legal friction. But the real bottom line? Every placement builds trade schools for at-risk youth. We aren't just making media here. We are changing realities.
+              One-stop, 100% independent master sync catalog with zero legal friction. Every placement directly funds trade schools for at-risk youth. We aren't just making media here. We are changing realities.
             </p>
 
             {/* Call-to-Action — Browse The Vault */}

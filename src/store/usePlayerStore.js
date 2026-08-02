@@ -80,12 +80,12 @@ const usePlayerStore = create((set, get) => ({
     const { playlist, activeTrack } = get();
     if (!playlist.length || !activeTrack) return;
     const currentIndex = playlist.findIndex((t) => t.id === activeTrack.id);
-    if (currentIndex === -1 || currentIndex >= playlist.length - 1) {
-      // Last track — stop playback
-      set({ isPlaying: false });
-      return;
-    }
-    const nextTrack = mapTrackWithUrl(playlist[currentIndex + 1]);
+    // ⚡ CONTINUOUS PLAYBACK LOOP — modulo wraps to index 0 after the last track.
+    // The catalog never dead-stops; it cycles forever.
+    const nextIndex = currentIndex === -1
+      ? 0
+      : (currentIndex + 1) % playlist.length;
+    const nextTrack = mapTrackWithUrl(playlist[nextIndex]);
     saveSession({ track: nextTrack, currentTime: 0 });
     set({ activeTrack: nextTrack, isPlaying: true, currentTime: 0 });
   },
