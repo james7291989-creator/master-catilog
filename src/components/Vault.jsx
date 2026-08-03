@@ -65,36 +65,31 @@ export default function Vault() {
     return data?.publicUrl || `/${fileName}`;
   }
 
-  // =============================================================================
-  // ⚡ BLOB FETCH OVERRIDE — FORCED LOCAL SAVE
-  // Standard HTML `<a download>` fails on cross-origin URLs (Supabase bucket).
-  // This async handler streams the asset as a Blob, mounts a programmatic
-  // anchor, triggers the click, unmounts, and revokes the object URL.
-  // =============================================================================
-  async function handleDownload(track) {
-    const url = resolveTrackAudioUrl(track);
-    if (!url || url === '#') return;
+  const handleDownload = (track, e) => {
+      e.stopPropagation(); // Stop audio player from triggering
+      
+      const url = track.file_path || track.url || track.audioUrl;
+      if (!url) {
+          console.error("No audio URL found for this track.");
+          return;
+      }
 
-    const fileName = track.file_name || 'master-audio.mp3';
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
+      // Exploit Supabase's forced-download query parameter
+      const downloadUrl = url.includes('supabase.co') 
+          ? `${url}?download=${encodeURIComponent(track.title + '_Temp.mp3')}`
+          : url;
 
-      // Programmatic anchor mount -> click -> unmount -> revoke
-      const anchor = document.createElement('a');
-      anchor.href = objectUrl;
-      anchor.download = fileName;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(objectUrl);
-    } catch (error) {
-      console.error('BLOB FETCH FAILED:', error);
-      setAudioError('DOWNLOAD FAILED — CHECK BUCKET PERMISSIONS');
-    }
-  }
+      // Create an invisible anchor and force a synchronous click
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = downloadUrl;
+      a.download = `${track.title.replace(/\s+/g, '_')}_Temp_Master.mp3`;
+      a.target = '_blank';
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+  };
 
   // 3. BULLETPROOF AUDIO BINDING
   function handlePlayClick(track) {
@@ -207,8 +202,8 @@ export default function Vault() {
       <div className="hidden md:grid grid-cols-12 gap-4 border-b border-zinc-800 pb-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4 px-4">
         <div className="col-span-5">Track Title</div>
         <div className="col-span-3">Genre / Mood</div>
-        <div className="col-span-2">BPM / Key</div>
-        <div className="col-span-2 text-right">Action</div>
+        <div className="col-span-1">BPM / Key</div>
+        <div className="col-span-3 text-right">Action</div>
       </div>
 
       {/* TRACK GRID — ghost vault, classified archive feel */}
@@ -235,7 +230,7 @@ export default function Vault() {
                 }`}
               >
                 {/* PLAY + TITLE & ASSET TYPE */}
-                <div className="md:col-span-5 flex items-center gap-3">
+                <div className="col-span-12 md:col-span-5 flex items-center gap-3">
                   <button
                     onClick={() => { handlePlayClick(track); hapticClick(); }}
                     className={`p-2 transition-all flex items-center justify-center flex-shrink-0 ${
@@ -261,31 +256,33 @@ export default function Vault() {
                 </div>
 
                 {/* BPM — strict WCAG contrast */}
-                <div className="hidden md:block md:col-span-2">
+                <div className="hidden md:block md:col-span-1">
                    <span className="text-xs text-zinc-300 font-mono">
                      {track.bpm ? `${track.bpm} BPM` : '--- BPM'} <span className="text-zinc-300 px-1">•</span> KEY: {track.key ? track.key.toUpperCase() : '--'}
                    </span>
                 </div>
 
                 {/* ACTION — BIFURCATED CONVERSION FUNNEL */}
-                <div className="md:col-span-2 flex items-center justify-end space-x-3 w-full md:w-auto mt-4 md:mt-0">
-                  {/* [ACTION A: ASSET ACQUISITION] — Temp MP3 (Secondary) */}
-                  <button
-                    onClick={() => { handleDownload(track); hapticClick(); }}
-                    aria-label="Download Temp MP3"
-                    className="inline-flex items-center justify-center bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-semibold py-2 px-4 rounded-lg transition-all border border-zinc-700 hover:border-zinc-400 text-xs shadow-sm whitespace-nowrap focus:ring-2 focus:ring-zinc-500 outline-none"
-                  >
-                    Temp MP3
-                    <Download size={16} className="ml-2" aria-hidden="true" />
-                  </button>
-                  {/* [ACTION B: LICENSE PROTOCOL] — License Track (Primary) */}
-                  <button
-                    onClick={() => { setLicenseTrack(track); hapticClick(); }}
-                    aria-label="License Track"
-                    className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg transition-all shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] text-xs whitespace-nowrap focus:ring-2 focus:ring-emerald-400 outline-none"
-                  >
-                    License Track
-                  </button>
+                <div className="col-span-12 md:col-span-3">
+                  <div className="flex items-center justify-end gap-3 w-full pr-2">
+                    {/* [ACTION A: ASSET ACQUISITION] — Temp MP3 (Secondary) */}
+                    <button
+                      onClick={() => { handleDownload(track); hapticClick(); }}
+                      aria-label="Download Temp MP3"
+                      className="inline-flex items-center justify-center bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-semibold py-2 px-4 rounded-lg transition-all border border-zinc-700 hover:border-zinc-400 text-xs shadow-sm whitespace-nowrap focus:ring-2 focus:ring-zinc-500 outline-none"
+                    >
+                      Temp MP3
+                      <Download size={16} className="ml-2" aria-hidden="true" />
+                    </button>
+                    {/* [ACTION B: LICENSE PROTOCOL] — License Track (Primary) */}
+                    <button
+                      onClick={() => { setLicenseTrack(track); hapticClick(); }}
+                      aria-label="License Track"
+                      className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg transition-all shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] text-xs whitespace-nowrap focus:ring-2 focus:ring-emerald-400 outline-none"
+                    >
+                      License Track
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             );
