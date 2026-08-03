@@ -65,32 +65,6 @@ export default function Vault() {
     return data?.publicUrl || `/${fileName}`;
   }
 
-  const handleDownload = (track, e) => {
-      e.stopPropagation(); // Stop audio player from triggering
-      
-      const url = track.file_path || track.url || track.audioUrl;
-      if (!url) {
-          console.error("No audio URL found for this track.");
-          return;
-      }
-
-      // Exploit Supabase's forced-download query parameter
-      const downloadUrl = url.includes('supabase.co') 
-          ? `${url}?download=${encodeURIComponent(track.title + '_Temp.mp3')}`
-          : url;
-
-      // Create an invisible anchor and force a synchronous click
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = downloadUrl;
-      a.download = `${track.title.replace(/\s+/g, '_')}_Temp_Master.mp3`;
-      a.target = '_blank';
-      
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-  };
-
   // 3. BULLETPROOF AUDIO BINDING
   function handlePlayClick(track) {
     setAudioError(null);
@@ -266,14 +240,25 @@ export default function Vault() {
                 <div className="col-span-12 md:col-span-3">
                   <div className="flex items-center justify-end gap-3 w-full pr-2">
                     {/* [ACTION A: ASSET ACQUISITION] — Temp MP3 (Secondary) */}
-                    <button
-                      onClick={() => { handleDownload(track); hapticClick(); }}
-                      aria-label="Download Temp MP3"
-                      className="inline-flex items-center justify-center bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 font-semibold py-2 px-4 rounded-lg transition-all border border-zinc-700 hover:border-zinc-400 text-xs shadow-sm whitespace-nowrap focus:ring-2 focus:ring-zinc-500 outline-none"
+                    <a
+                        href={(() => {
+                            const url = track.file_path || track.url || track.audioUrl || '#';
+                            if (url.includes('supabase.co')) {
+                                return `${url}?download=${encodeURIComponent(track.title + '_Temp.mp3')}`;
+                            }
+                            return url;
+                        })()}
+                        download={`${track.title.replace(/\s+/g, '_')}_Temp_Master.mp3`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-600 px-4 py-2.5 text-xs font-bold tracking-wider transition-all duration-200 cursor-pointer"
                     >
-                      Temp MP3
-                      <Download size={16} className="ml-2" aria-hidden="true" />
-                    </button>
+                        Temp MP3
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                    </a>
                     {/* [ACTION B: LICENSE PROTOCOL] — License Track (Primary) */}
                     <button
                       onClick={() => { setLicenseTrack(track); hapticClick(); }}
