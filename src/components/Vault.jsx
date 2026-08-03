@@ -248,7 +248,7 @@ export default function Vault() {
                             }
                             return url;
                         })()}
-                        download={`${track.title.replace(/\s+/g, '_')}_Temp_Master.mp3`}
+                        download={`${(track.title || 'Untitled_Track').replace(/\s+/g, '_')}_Temp_Master.mp3`}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
