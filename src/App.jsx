@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HeroSection from './components/HeroSection';
 import Vault from './components/Vault';
+import SyncVault from './components/SyncVault';
 import PlayerBar from './components/PlayerBar';
 import Mission from './pages/Mission';
 
@@ -24,6 +25,7 @@ export default function App() {
               <div className="relative z-10">
                 <HeroSection />
                 <Vault />
+                <SyncVault />
               </div>
               <PlayerBar />
             </div>

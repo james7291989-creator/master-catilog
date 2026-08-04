@@ -1,319 +1,133 @@
-import { useRef, useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+// --- BEGIN APEX PLAYER ENGINE ---
+import { useState, useRef, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import usePlayerStore from '../store/usePlayerStore';
-import useAudioAnalyzer from '../utils/useAudioAnalyzer';
 
-// =============================================================================
-// AGGRESSIVE TITLE SANITIZATION (mirrors Vault for consistency)
-// =============================================================================
-const formatTrackTitle = (rawString) => {
-  if (!rawString) return 'Untitled Master';
-  let cleaned = rawString
-    .replace(/^_+/, '')
-    .replace(/_+$/, '')
-    .replace(/\.(wav|mp3|flac|aiff?|ogg)$/i, '')
-    .replace(/(\(Remix\)\s*){2,}/gi, '(Remix)')
-    .replace(/\s*\(\d+\)\s*$/, '')
-    .replace(/_+$/, '')
-    .replace(/\s{2,}/g, ' ')
-    .trim();
-  cleaned = cleaned
-    .split(' ')
-    .map((w) => {
-      if (!w) return w;
-      if (w === w.toUpperCase() && w.length > 1) return w;
-      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
-    })
-    .join(' ');
-  return cleaned || 'Untitled Master';
-};
+// SECURE APEX HANDSHAKE — Vite env vars (this is a Vite project, not Next.js)
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// =============================================================================
-// TIME FORMATTER — mm:ss for the custom timeline labels
-// =============================================================================
-const formatTime = (seconds) => {
-  if (!isFinite(seconds) || seconds < 0 || isNaN(seconds)) return '0:00';
-  const m = Math.floor(seconds / 60);
-  const s = Math.floor(seconds % 60);
-  return `${m}:${s.toString().padStart(2, '0')}`;
-};
+if (!supabaseUrl || !supabaseKey) {
+  console.error("🚨 OMEGA ALERT: Supabase environment variables are offline. CTO intervention required.");
+}
 
-export default function PlayerBar() {
-  const { activeTrack, isPlaying, togglePlay, updateCurrentTime, sessionRestored, resumedFromTrack, playNextTrack } = usePlayerStore();
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+export default function ApexPlayerBar() {
+  const activeTrack = usePlayerStore(state => state.activeTrack);
+  const isPlaying = usePlayerStore(state => state.isPlaying);
+  const togglePlay = usePlayerStore(state => state.togglePlay);
+  const playNextTrack = usePlayerStore(state => state.playNextTrack);
+
   const audioRef = useRef(null);
-  const progressBarRef = useRef(null);
-  const isScrubbingRef = useRef(false);
-  const [audioError, setAudioError] = useState(false);
-  const [audioReady, setAudioReady] = useState(false);
-  const [showResumeBanner, setShowResumeBanner] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [audioUrl, setAudioUrl] = useState('');
 
-  // PILLAR 2: Ambient Audio Reactivity
-  const spectrum = useAudioAnalyzer(audioRef.current, isPlaying && !!activeTrack);
-
-  // =============================================================================
-  // ⚡ REACTIVE PLAYBACK HOOK — CONTINUOUS PLAYLIST ENGINE
-  // The onEnded handler ONLY advances the global activeTrack (see store's
-  // playNextTrack). This hook reacts to that state change: it verifies the
-  // <audio> node exists, calls load() to mount the new src, then fires a
-  // promised-wrapped play(). This decouples the event from the DOM update,
-  // eliminating the race condition where .play() fired before src refreshed.
-  // =============================================================================
+  // ⚡ OMEGA STREAM RESOLUTION — pull the public URL from the vault-audio bucket
   useEffect(() => {
-    if (activeTrack && isPlaying && audioRef.current) {
-      setAudioReady(false);
-      setAudioError(false);
+    if (activeTrack?.file_name) {
+      setHasError(false);
+      setIsBuffering(true);
+      try {
+        const { data } = supabase.storage
+          .from('vault-audio')
+          .getPublicUrl(activeTrack.file_name);
 
-      console.log("🚀 PLAYERBAR RECEIVING URL:", activeTrack.file_path);
-
-      // Mount the new src to the DOM node first...
-      audioRef.current.load();
-      // ...then play, wrapped in a promise so interruptions are caught.
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.error("Playback interrupted:", error);
-          setAudioError(true);
-        });
+        if (data?.publicUrl) {
+          setAudioUrl(data.publicUrl);
+        } else {
+          throw new Error("Vault retrieval failed.");
+        }
+      } catch (error) {
+        console.error("🚨 VAULT BREACH:", error);
+        setHasError(true);
+        setIsBuffering(false);
       }
+    } else {
+      setAudioUrl('');
     }
-  }, [activeTrack]); // Only re-run when the track physically changes
-
-  // Pause the DOM node when the user hits stop (isPlaying flips false).
-  useEffect(() => {
-    if (!isPlaying && audioRef.current) {
-      audioRef.current.pause();
-    }
-  }, [isPlaying]);
-
-  // Reset timeline display whenever the track changes
-  useEffect(() => {
-    setCurrentTime(0);
-    setDuration(0);
   }, [activeTrack]);
 
-  // PILLAR 1: Session restoration notification
+  // ⚡ PLAYBACK ENGINE — react to isPlaying + audioUrl changes
   useEffect(() => {
-    if (sessionRestored && activeTrack) {
-      setShowResumeBanner(true);
-      const timer = setTimeout(() => setShowResumeBanner(false), 4000);
-      return () => clearTimeout(timer);
-    }
-  }, [sessionRestored, activeTrack]);
-
-  // PILLAR 1: Persist current playback time
-  function handleTimeUpdate() {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-      // Suppress session persistence while the user is actively scrubbing
-      if (!isScrubbingRef.current && isPlaying) {
-        updateCurrentTime(audioRef.current.currentTime);
+    const audio = audioRef.current;
+    if (audio && audioUrl) {
+      if (isPlaying) {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => setIsBuffering(false))
+            .catch(err => {
+              console.error("Playback intercepted:", err);
+              togglePlay();
+            });
+        }
+      } else {
+        audio.pause();
       }
     }
-  }
+  }, [isPlaying, audioUrl, togglePlay]);
 
-  function handleLoadedMetadata() {
-    if (audioRef.current && isFinite(audioRef.current.duration)) {
-      setDuration(audioRef.current.duration);
-    }
-  }
-
-  // =============================================================================
-  // ⚡ CUSTOM INTERACTIVE SCRUBBING ENGINE
-  // Click OR drag anywhere on the timeline — the pointer position is mapped
-  // to the track's total duration and written straight to audioRef.currentTime.
-  // =============================================================================
-  function scrubToClientX(clientX) {
+  // ⚡ TEARDOWN GUARD — release the media heap on unmount or track change
+  useEffect(() => {
     const audio = audioRef.current;
-    const bar = progressBarRef.current;
-    if (!audio || !bar || !isFinite(audio.duration) || audio.duration <= 0) return;
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+      }
+    };
+  }, [activeTrack]);
 
-    const rect = bar.getBoundingClientRect();
-    const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
-    const time = ratio * audio.duration;
-
-    // Real-time scrub — jump the audio position immediately
-    audio.currentTime = time;
-    setCurrentTime(time);
-  }
-
-  function handlePointerDown(e) {
-    if (!audioRef.current) return;
-    isScrubbingRef.current = true;
-    // Capture the pointer so dragging continues even outside the bar
-    e.currentTarget.setPointerCapture && e.currentTarget.setPointerCapture(e.pointerId);
-    scrubToClientX(e.clientX);
-  }
-
-  function handlePointerMove(e) {
-    if (isScrubbingRef.current) {
-      scrubToClientX(e.clientX);
-    }
-  }
-
-  function endScrub() {
-    if (!isScrubbingRef.current) return;
-    isScrubbingRef.current = false;
-    // Persist the final scrubbed position to the session
-    if (audioRef.current) {
-      updateCurrentTime(audioRef.current.currentTime);
-    }
-  }
-
-  // =============================================================================
-  // CSS EQUALIZER — 5 animated bars, stripped of color
-  // =============================================================================
-  const Equalizer = () => (
-    <div className="flex items-end gap-[3px] h-full shrink-0 py-1">
-      {[0, 1, 2, 3, 4].map((i) => (
-        <div
-          key={i}
-          className="w-[3px] rounded-full bg-white origin-bottom"
-          style={{
-            height: isPlaying ? '100%' : '30%',
-            animation: isPlaying
-              ? `equalizer ${0.5 + i * 0.08}s ease-in-out infinite`
-              : 'none',
-            animationDelay: `${i * 0.1}s`,
-            opacity: isPlaying ? 0.8 : 0.2,
-          }}
-        />
-      ))}
-    </div>
-  );
-
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
+  if (!activeTrack) return null;
 
   return (
-    <>
-      {/* PILLAR 1: "Resuming Session" banner */}
-      <AnimatePresence>
-        {showResumeBanner && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[9998] bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 px-5 py-3"
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4">
+      {/* APEX GLASSMORPHIC CHASSIS */}
+      <div className="mx-auto max-w-6xl bg-black/80 backdrop-blur-xl border border-green-500/30 rounded-2xl p-5 flex items-center justify-between shadow-[0_0_40px_rgba(34,197,94,0.2)] transition-all duration-500">
+
+        {/* TRACK TELEMETRY */}
+        <div className="flex flex-col border-l-4 border-green-500 pl-4 min-w-0">
+          <span className="font-extrabold text-xl text-white tracking-widest uppercase drop-shadow-md truncate">
+            {activeTrack.track_title || 'UNKNOWN DATA'}
+          </span>
+          <span className="text-sm text-green-400 font-mono uppercase tracking-wider truncate">
+            {activeTrack.artist || 'ANONYMOUS'} // <span className="text-gray-500">APEX SECURE STREAM</span>
+          </span>
+          {hasError && <span className="text-xs text-red-500 mt-1 animate-pulse font-bold">ERROR: STREAM OFFLINE</span>}
+        </div>
+
+        {/* TACTICAL COMMAND CENTER */}
+        <div className="flex items-center gap-6 flex-shrink-0">
+          <button
+            onClick={togglePlay}
+            disabled={hasError || !audioUrl}
+            className={`relative overflow-hidden px-10 py-3 rounded-full font-black text-lg transition-all duration-300 uppercase tracking-widest ${
+              hasError || !audioUrl
+                ? 'bg-gray-800 text-gray-600 cursor-not-allowed border border-gray-700'
+                : isPlaying
+                  ? 'bg-transparent text-green-400 border-2 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:bg-green-900/30'
+                  : 'bg-green-500 text-black shadow-[0_0_25px_rgba(34,197,94,0.8)] hover:bg-green-400 hover:scale-105'
+            }`}
           >
-            <p className="text-zinc-400 text-xs font-bold tracking-widest uppercase flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-zinc-400 animate-pulse" />
-              Resuming Session...
-            </p>
-            <p className="text-zinc-600 text-[10px] mt-1 font-mono">
-              Picked up where you left off
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <motion.div
-        animate={{ y: activeTrack ? 0 : '100%', opacity: activeTrack ? 1 : 0 }}
-        transition={{ type: 'spring', stiffness: 180, damping: 18 }}
-        className="fixed bottom-0 left-0 w-full bg-zinc-950/95 backdrop-blur-3xl border-t border-zinc-900 z-50 px-6 py-3 flex items-center justify-between"
-      >
-      {/* LEFT: Track Info + Equalizer */}
-      <div className="flex items-center gap-4 w-1/4 min-w-0">
-        {/* Visualizer icon circle */}
-        <div className="w-10 h-10 shrink-0 bg-black border border-zinc-800 flex items-center justify-center relative overflow-hidden">
-          {isPlaying ? (
-            <Equalizer />
-          ) : (
-            <span className="text-zinc-400 font-sans text-lg leading-none">♪</span>
-          )}
+            {isBuffering ? 'LOADING...' : isPlaying ? '|| PAUSE' : '► ENGAGE'}
+          </button>
         </div>
-        <div className="truncate min-w-0">
-          <div className="text-white font-black text-sm truncate">
-            {activeTrack ? formatTrackTitle(activeTrack.title) : ''}
-          </div>
-          <div className="text-zinc-500 text-[10px] font-bold tracking-[0.2em] uppercase mt-0.5 flex items-center gap-2">
-            <span>
-              {activeTrack?.bpm || '---'} BPM • KEY: {activeTrack?.key ? activeTrack.key.toUpperCase() : 'UNASSIGNED'}
-            </span>
-            {audioError && (
-              <span className="text-zinc-600 text-[9px] flex items-center gap-1">
-                ⚠️ Stream Error
-              </span>
-            )}
-          </div>
-        </div>
-        {/* Inline equalizer next to title */}
-        {isPlaying && (
-          <div className="shrink-0 pl-2 border-l border-zinc-900">
-            <Equalizer />
-          </div>
-        )}
-      </div>
 
-      {/* CENTER: Custom Interactive Timeline */}
-      <div className="flex-1 max-w-2xl px-4">
-        {/* Hidden native audio element — drives playback, styled via custom UI */}
+        {/* INVISIBLE HTML5 AUDIO ENGINE */}
         <audio
           ref={audioRef}
-          crossOrigin="anonymous"
-          volume={1}
-          src={activeTrack ? activeTrack.file_path : ''}
-          controlsList="nodownload noplaybackrate"
-          className="hidden"
-          onPlay={() => { if (!isPlaying) togglePlay(); setAudioError(false); }}
-          onPause={() => { if (isPlaying) togglePlay(); }}
+          src={audioUrl}
           onEnded={playNextTrack}
-          onError={() => setAudioError(true)}
-          onCanPlay={() => setAudioReady(true)}
-          onTimeUpdate={handleTimeUpdate}
-          onLoadedMetadata={handleLoadedMetadata}
+          onPlaying={() => setIsBuffering(false)}
+          onWaiting={() => setIsBuffering(true)}
+          onError={() => { setHasError(true); setIsBuffering(false); }}
+          preload="auto"
         />
-
-        {/* Interactive scrub track */}
-        <div
-          ref={progressBarRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={endScrub}
-          onPointerCancel={endScrub}
-          onPointerLeave={endScrub}
-          className="group relative w-full h-11 flex items-center cursor-pointer select-none touch-none"
-        >
-          {/* Track */}
-          <div className="relative w-full h-1 bg-zinc-800 rounded-full overflow-visible">
-            {/* Progress fill */}
-            <div
-              className="absolute left-0 top-0 h-full rounded-full bg-gradient-to-r from-cyan-400 to-yellow-400"
-              style={{ width: `${progressPercent}%` }}
-            />
-            {/* Scrub thumb */}
-            <div
-              className="absolute w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(34,211,238,0.9)]"
-              style={{
-                left: `${progressPercent}%`,
-                transform: 'translate(-50%, -50%)',
-                top: '50%',
-                opacity: isScrubbingRef.current ? 1 : undefined,
-              }}
-            />
-            {/* Hover glow overlay */}
-            <div className="absolute inset-0 rounded-full bg-cyan-400/0 group-hover:bg-cyan-400/5 transition-colors" />
-          </div>
-
-          {/* Time labels */}
-          <div className="absolute bottom-0 left-0 right-0 text-[10px] font-mono text-zinc-500 flex justify-between pointer-events-none">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
-          </div>
-        </div>
       </div>
-
-      {/* RIGHT: Close */}
-      <div className="w-1/4 flex justify-end">
-        <button
-          onClick={() => window.location.reload()}
-          className="text-zinc-700 hover:text-zinc-300 text-[10px] font-bold tracking-[0.2em] transition-colors uppercase"
-        >
-          CLOSE ✕
-        </button>
-      </div>
-    </motion.div>
-    </>
+    </div>
   );
 }
+// --- END APEX PLAYER ENGINE ---

@@ -7,9 +7,14 @@ import LicenseModal from './LicenseModal';
 import BioModal from './BioModal';
 import TestimonyVault from './TestimonyVault';
 import hapticClick from '../utils/vibrate';
+import sanitizeFilename from '../utils/sanitizeFilename';
 
 export default function Vault() {
-  const { activeTrack, isPlaying, setTrack, togglePlay, setPlaylist } = usePlayerStore();
+  const activeTrack = usePlayerStore(state => state.activeTrack);
+  const isPlaying = usePlayerStore(state => state.isPlaying);
+  const setTrack = usePlayerStore(state => state.setTrack);
+  const togglePlay = usePlayerStore(state => state.togglePlay);
+  const setPlaylist = usePlayerStore(state => state.setPlaylist);
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [licenseTrack, setLicenseTrack] = useState(null);
@@ -244,13 +249,11 @@ export default function Vault() {
                         href={(() => {
                             const url = track.file_path || track.url || track.audioUrl || '#';
                             if (url.includes('supabase.co')) {
-                                return `${url}?download=${encodeURIComponent(track.title + '_Temp.mp3')}`;
+                                return `${url}?download=${encodeURIComponent(sanitizeFilename(track.title) + '_Temp.mp3')}`;
                             }
                             return url;
                         })()}
-                        download={`${(track.title || 'Untitled_Track').replace(/\s+/g, '_')}_Temp_Master.mp3`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        download={`${sanitizeFilename(track.title)}_Temp_Master.mp3`}
                         onClick={(e) => e.stopPropagation()}
                         className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-600 px-4 py-2.5 text-xs font-bold tracking-wider transition-all duration-200 cursor-pointer"
                     >
@@ -276,9 +279,8 @@ export default function Vault() {
       </div>
 
       <LicenseModal
-        isOpen={!!licenseTrack}
-        onClose={() => setLicenseTrack(null)}
         track={licenseTrack}
+        onClose={() => setLicenseTrack(null)}
       />
       <BioModal
         isOpen={bioOpen}
