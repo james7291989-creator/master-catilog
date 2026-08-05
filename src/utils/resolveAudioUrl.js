@@ -9,5 +9,6 @@ export const resolveTrackAudioUrl = (track) => {
   const encodedName = exactName.split('/').map(segment => encodeURIComponent(segment)).join('/');
   
   const { data } = supabase.storage.from('vault-audio').getPublicUrl(encodedName);
+  console.log("🔥 APEX DIAGNOSTIC: Generated URL:", data?.publicUrl);
   return data?.publicUrl || null;
 };

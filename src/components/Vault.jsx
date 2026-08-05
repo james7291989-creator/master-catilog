@@ -28,15 +28,17 @@ export default function Vault() {
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
+        console.log("🔥 APEX DIAGNOSTIC: Fetching catalog...");
         const { data, error } = await supabase
           .from('sync_catalog')
           .select('*')
           .order('track_title', { ascending: true });
 
+        console.log("🔥 APEX DIAGNOSTIC: Payload returned:", data);
         if (error) throw error;
         setTracks(data || []);
       } catch (error) {
-        console.error("Database Connection Error:", error.message);
+        console.error("🔥 APEX DIAGNOSTIC: Database Error:", error);
       } finally {
         setLoading(false);
       }
