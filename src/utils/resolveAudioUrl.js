@@ -6,8 +6,9 @@ import { supabase } from './supabaseClient';
 //   1. A `.mp3` extension is appended when the reference is missing one.
 //   2. Spaces and other unsafe characters are URL-encoded so the browser
 //      never receives a malformed payload (e.g. `Baby%20You%20There.mp3`).
-//   3. MP3 masters stream from the public/ directory; everything else
-//      resolves through the `vault-audio` Supabase bucket.
+//   3. MP3 masters are 100% hardwired through the `vault-audio` Supabase
+//      bucket via `getPublicUrl()` — the bucket is the single source of
+//      truth for all `.mp3` streams.
 
 const AUDIO_EXTENSIONS = /\.(wav|mp3|flac|aac|ogg|m4a)$/i;
 
@@ -40,12 +41,9 @@ export function resolveTrackAudioUrl(track) {
   const sanitizedName = ensureExtension(rawName);
   const encodedName = encodePath(sanitizedName);
 
-  // MP3 masters are served straight from the public/ directory (Vercel root).
-  if (encodedName.toLowerCase().endsWith('.mp3')) {
-    return `/${encodedName}`;
-  }
-
-  // All other masters are pulled from the Supabase public `vault-audio` bucket.
+  // ⚡ APEX CTO OVERRIDE: MP3 masters are 100% hardwired through the
+  // `vault-audio` Supabase bucket. The bucket is the single source of truth
+  // for all `.mp3` streams — never the public/ directory.
   const { data } = supabase.storage.from('vault-audio').getPublicUrl(encodedName);
   return data?.publicUrl || `/${encodedName}`;
 }
