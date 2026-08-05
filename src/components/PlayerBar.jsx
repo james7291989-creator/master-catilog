@@ -1,18 +1,8 @@
 // --- BEGIN APEX PLAYER ENGINE ---
 import { useState, useRef, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import usePlayerStore from '../store/usePlayerStore';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
-
-// SECURE APEX HANDSHAKE — Vite env vars (this is a Vite project, not Next.js)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseKey) {
-  console.error("🚨 OMEGA ALERT: Supabase environment variables are offline. CTO intervention required.");
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { supabase } from '../utils/supabaseClient';
 
 export default function ApexPlayerBar() {
   const activeTrack = usePlayerStore(state => state.activeTrack);
