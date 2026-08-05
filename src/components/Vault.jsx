@@ -66,7 +66,7 @@ export default function Vault() {
     }
 
     // All other masters are pulled from the Supabase public 'audio' bucket
-    const { data } = supabase.storage.from('audio').getPublicUrl(fileName);
+    const { data } = supabase.storage.from('vault-audio').getPublicUrl(fileName);
     return data?.publicUrl || `/${fileName}`;
   }
 
