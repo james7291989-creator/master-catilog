@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, Disc, Music2, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
+import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 
 // ⚡ TIER BADGE STYLING MATRIX — dynamic color coding per required_tier
 const TIER_STYLES = {
@@ -100,10 +101,13 @@ export default function SyncVault() {
     setCurrentlyPlayingId((current) => (current === trackId ? null : current));
   }, []);
 
-  // ⚡ AUDIO SOURCE MAPPING — with graceful fallback if file_name is null
+  // ⚡ AUDIO SOURCE MAPPING — routed through the shared APEX sanitization
+  // pipeline so `.wav` is appended when missing and spaces are URL-encoded
+  // (e.g. `Baby%20You%20There.wav`). Falls back to `#` when no reference exists.
   const resolveAudioSrc = (track) => {
-    if (!track?.file_name) return null;
-    return `/assets/audio/${track.file_name}`;
+    if (!track) return null;
+    const resolved = resolveTrackAudioUrl(track);
+    return resolved && resolved !== '#' ? resolved : null;
   };
 
   // ⚡ TIER BADGE RESOLVER

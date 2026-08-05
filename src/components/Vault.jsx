@@ -8,6 +8,7 @@ import BioModal from './BioModal';
 import TestimonyVault from './TestimonyVault';
 import hapticClick from '../utils/vibrate';
 import sanitizeFilename from '../utils/sanitizeFilename';
+import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 
 export default function Vault() {
   const activeTrack = usePlayerStore(state => state.activeTrack);
@@ -53,22 +54,9 @@ export default function Vault() {
   };
 
   // 2.5 ⚡ APEX CTO OVERRIDE: SINGLE SOURCE OF TRUTH FOR AUDIO RESOLUTION
-  // Every stream + download resolves through this one function so the vault
-  // can never drift into a dead path again.
-  function resolveTrackAudioUrl(track) {
-    if (!track) return '#';
-    const fileName = track.file_name || track.master;
-    if (!fileName) return '#';
-
-    // MP3 masters are served straight from the public/ directory (Vercel root)
-    if (fileName.toLowerCase().endsWith('.mp3')) {
-      return `/${fileName}`;
-    }
-
-    // All other masters are pulled from the Supabase public 'audio' bucket
-    const { data } = supabase.storage.from('vault-audio').getPublicUrl(fileName);
-    return data?.publicUrl || `/${fileName}`;
-  }
+  // Every stream + download resolves through the shared sanitization pipeline
+  // (utils/resolveAudioUrl.js) so `.wav` is appended when missing and spaces
+  // are URL-encoded. The vault can never drift into a dead path again.
 
   // 3. BULLETPROOF AUDIO BINDING
   function handlePlayClick(track) {
@@ -247,11 +235,14 @@ export default function Vault() {
                     {/* [ACTION A: ASSET ACQUISITION] — Temp MP3 (Secondary) */}
                     <a
                         href={(() => {
-                            const url = track.file_path || track.url || track.audioUrl || '#';
-                            if (url.includes('supabase.co')) {
+                            // ⚡ APEX CTO OVERRIDE: resolve through the shared sanitization
+                            // pipeline so `.wav` is appended when missing and spaces are
+                            // URL-encoded (e.g. `Baby%20You%20There.wav`).
+                            const url = resolveTrackAudioUrl(track);
+                            if (url && url !== '#' && url.includes('supabase.co')) {
                                 return `${url}?download=${encodeURIComponent(sanitizeFilename(track.title) + '_Temp.mp3')}`;
                             }
-                            return url;
+                            return url && url !== '#' ? url : '#';
                         })()}
                         download={`${sanitizeFilename(track.title)}_Temp_Master.mp3`}
                         onClick={(e) => e.stopPropagation()}

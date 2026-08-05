@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import usePlayerStore from '../store/usePlayerStore';
+import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 
 // SECURE APEX HANDSHAKE — Vite env vars (this is a Vite project, not Next.js)
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -26,16 +27,16 @@ export default function ApexPlayerBar() {
 
   // ⚡ OMEGA STREAM RESOLUTION — pull the public URL from the vault-audio bucket
   useEffect(() => {
-    if (activeTrack?.file_name) {
+    if (activeTrack) {
       setHasError(false);
       setIsBuffering(true);
       try {
-        const { data } = supabase.storage
-          .from('vault-audio')
-          .getPublicUrl(activeTrack.file_name);
+        // ⚡ APEX CTO OVERRIDE: resolve through the shared sanitization pipeline
+        // so `.wav` is appended when missing and spaces are URL-encoded.
+        const resolvedUrl = resolveTrackAudioUrl(activeTrack);
 
-        if (data?.publicUrl) {
-          setAudioUrl(data.publicUrl);
+        if (resolvedUrl && resolvedUrl !== '#') {
+          setAudioUrl(resolvedUrl);
         } else {
           throw new Error("Vault retrieval failed.");
         }

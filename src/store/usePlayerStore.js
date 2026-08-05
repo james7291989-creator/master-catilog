@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '../utils/supabaseClient';
+import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 
 // =============================================================================
 // PILLAR 1: STATEFUL MEMORY — "WELCOME BACK" PROTOCOL
@@ -34,16 +34,12 @@ const formatTrackTitle = (rawTitle) => {
 };
 
 // Helper: maps a raw DB track into a playable track object with secure URL
-// ⚡ MP3-override: tracks optimized for web streaming live in the public/
-// directory (Vite serves them at /). Everything else streams from Supabase.
+// ⚡ APEX CTO OVERRIDE: resolves through the shared sanitization pipeline
+// (utils/resolveAudioUrl.js) so `.wav` is appended when missing and spaces
+// are URL-encoded. MP3 masters stream from public/; everything else resolves
+// through the `vault-audio` Supabase bucket.
 const mapTrackWithUrl = (track) => {
-  let finalAudioUrl;
-  if (track.file_name?.toLowerCase().endsWith('.mp3')) {
-    finalAudioUrl = `/${track.file_name}`;
-  } else {
-    const { data } = supabase.storage.from('audio').getPublicUrl(track.file_name);
-    finalAudioUrl = data.publicUrl;
-  }
+  const finalAudioUrl = resolveTrackAudioUrl(track);
   return {
     ...track,
     id: track.id,
