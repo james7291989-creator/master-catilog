@@ -3,9 +3,9 @@ import { supabase } from './supabaseClient';
 // ⚡ APEX CTO OVERRIDE: AUDIO URL SANITIZATION LOCKDOWN ⚡
 // Single source of truth for resolving a track reference into a playable
 // public URL. Guarantees:
-//   1. A `.wav` extension is appended when the reference is missing one.
+//   1. A `.mp3` extension is appended when the reference is missing one.
 //   2. Spaces and other unsafe characters are URL-encoded so the browser
-//      never receives a malformed payload (e.g. `Baby%20You%20There.wav`).
+//      never receives a malformed payload (e.g. `Baby%20You%20There.mp3`).
 //   3. MP3 masters stream from the public/ directory; everything else
 //      resolves through the `vault-audio` Supabase bucket.
 
@@ -17,8 +17,8 @@ function ensureExtension(fileName) {
   if (!trimmed) return '';
   // If the reference already carries a known audio extension, keep it as-is.
   if (AUDIO_EXTENSIONS.test(trimmed)) return trimmed;
-  // Otherwise append the canonical `.wav` extension.
-  return `${trimmed}.wav`;
+  // Otherwise append the canonical `.mp3` extension.
+  return `${trimmed}.mp3`;
 }
 
 function encodePath(fileName) {

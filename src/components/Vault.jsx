@@ -49,13 +49,13 @@ export default function Vault() {
     if (!rawTitle) return "Untitled Track";
     return rawTitle
       .replace(/^_+/, '')
-      .replace(/\.wav$|\.mp3$/i, '')
+      .replace(/\.mp3$|\.mp3$/i, '')
       .trim();
   };
 
   // 2.5 ⚡ APEX CTO OVERRIDE: SINGLE SOURCE OF TRUTH FOR AUDIO RESOLUTION
   // Every stream + download resolves through the shared sanitization pipeline
-  // (utils/resolveAudioUrl.js) so `.wav` is appended when missing and spaces
+  // (utils/resolveAudioUrl.js) so `.mp3` is appended when missing and spaces
   // are URL-encoded. The vault can never drift into a dead path again.
 
   // 3. BULLETPROOF AUDIO BINDING
@@ -236,8 +236,8 @@ export default function Vault() {
                     <a
                         href={(() => {
                             // ⚡ APEX CTO OVERRIDE: resolve through the shared sanitization
-                            // pipeline so `.wav` is appended when missing and spaces are
-                            // URL-encoded (e.g. `Baby%20You%20There.wav`).
+                            // pipeline so `.mp3` is appended when missing and spaces are
+                            // URL-encoded (e.g. `Baby%20You%20There.mp3`).
                             const url = resolveTrackAudioUrl(track);
                             if (url && url !== '#' && url.includes('supabase.co')) {
                                 return `${url}?download=${encodeURIComponent(sanitizeFilename(track.title) + '_Temp.mp3')}`;

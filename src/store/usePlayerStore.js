@@ -29,13 +29,13 @@ const formatTrackTitle = (rawTitle) => {
   if (!rawTitle) return "Untitled Track";
   return rawTitle
     .replace(/^_+/, '')
-    .replace(/\.wav$|\.mp3$/i, '')
+    .replace(/\.mp3$|\.mp3$/i, '')
     .trim();
 };
 
 // Helper: maps a raw DB track into a playable track object with secure URL
 // ⚡ APEX CTO OVERRIDE: resolves through the shared sanitization pipeline
-// (utils/resolveAudioUrl.js) so `.wav` is appended when missing and spaces
+// (utils/resolveAudioUrl.js) so `.mp3` is appended when missing and spaces
 // are URL-encoded. MP3 masters stream from public/; everything else resolves
 // through the `vault-audio` Supabase bucket.
 const mapTrackWithUrl = (track) => {

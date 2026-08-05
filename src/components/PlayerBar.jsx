@@ -32,7 +32,7 @@ export default function ApexPlayerBar() {
       setIsBuffering(true);
       try {
         // ⚡ APEX CTO OVERRIDE: resolve through the shared sanitization pipeline
-        // so `.wav` is appended when missing and spaces are URL-encoded.
+        // so `.mp3` is appended when missing and spaces are URL-encoded.
         const resolvedUrl = resolveTrackAudioUrl(activeTrack);
 
         if (resolvedUrl && resolvedUrl !== '#') {

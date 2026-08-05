@@ -22,7 +22,7 @@ export default function LicenseModal({ track, onClose }) {
   const trackTitle = track?.track_title
     ? track.track_title
         .replace(/^_+/, '')
-        .replace(/\.wav$|\.mp3$/i, '')
+        .replace(/\.mp3$|\.mp3$/i, '')
         .trim()
     : 'Untitled Track';
 

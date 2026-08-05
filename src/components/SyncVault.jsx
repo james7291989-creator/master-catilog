@@ -102,8 +102,8 @@ export default function SyncVault() {
   }, []);
 
   // ⚡ AUDIO SOURCE MAPPING — routed through the shared APEX sanitization
-  // pipeline so `.wav` is appended when missing and spaces are URL-encoded
-  // (e.g. `Baby%20You%20There.wav`). Falls back to `#` when no reference exists.
+  // pipeline so `.mp3` is appended when missing and spaces are URL-encoded
+  // (e.g. `Baby%20You%20There.mp3`). Falls back to `#` when no reference exists.
   const resolveAudioSrc = (track) => {
     if (!track) return null;
     const resolved = resolveTrackAudioUrl(track);
