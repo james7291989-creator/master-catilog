@@ -2,13 +2,17 @@ import { supabase } from './supabaseClient';
 
 export const resolveTrackAudioUrl = (track) => {
   if (!track) return null;
-  const exactName = track.file_name || track.track_title;
+  
+  // 1. Get the raw text from the database
+  let exactName = track.file_name || track.track_title;
   if (!exactName) return null;
   
-  // Encodes spaces (e.g. 'Baby You There' becomes 'Baby%20You%20There')
-  const encodedName = exactName.split('/').map(segment => encodeURIComponent(segment)).join('/');
+  // 2. Decode it just in case it got corrupted, ensuring a pure string
+  exactName = decodeURIComponent(exactName);
+
+  // 3. Let Supabase natively build the URL from the pure string
+  const { data } = supabase.storage.from('vault-audio').getPublicUrl(exactName);
   
-  const { data } = supabase.storage.from('vault-audio').getPublicUrl(encodedName);
-  console.log("🔥 APEX DIAGNOSTIC: Generated URL:", data?.publicUrl);
+  console.log("?? APEX PURE URL:", data?.publicUrl);
   return data?.publicUrl || null;
 };
