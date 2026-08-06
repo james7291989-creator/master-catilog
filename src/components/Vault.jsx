@@ -23,6 +23,7 @@ export default function Vault() {
   const [isTestimonyVaultBreached, setIsTestimonyVaultBreached] = useState(false);
   const [audioError, setAudioError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // 1. FETCH EXCLUSIVELY FROM THE REAL CATALOG
   useEffect(() => {
@@ -107,11 +108,24 @@ export default function Vault() {
     return ['All', ...Array.from(moodSet).sort()];
   }, [tracks]);
 
-  // MEMOIZATION: filtered track mapping array bound to activeFilter
+  // MEMOIZATION: filtered track mapping array bound to activeFilter + searchQuery
+  // ⚡ GLOBAL REAL-TIME SEARCH — matches against track_title, genre_mood/mood,
+  // and bpm. Case-insensitive so supervisors can find drop points instantly.
   const filteredTracks = useMemo(() => {
-    if (activeFilter === 'All') return tracks;
-    return tracks.filter((track) => track?.mood?.trim() === activeFilter);
-  }, [tracks, activeFilter]);
+    const query = searchQuery.trim().toLowerCase();
+    const moodFiltered = activeFilter === 'All'
+      ? tracks
+      : tracks.filter((track) => track?.mood?.trim() === activeFilter);
+
+    if (!query) return moodFiltered;
+
+    return moodFiltered.filter((track) => {
+      const title = String(track?.track_title || track?.title || '').toLowerCase();
+      const mood = String(track?.mood || track?.genre_mood || '').toLowerCase();
+      const bpm = String(track?.bpm ?? '').toLowerCase();
+      return title.includes(query) || mood.includes(query) || bpm.includes(query);
+    });
+  }, [tracks, activeFilter, searchQuery]);
 
   // PHASE 2: HYDRATE THE PLAYLIST INTO THE STORE
   // ⚡ CONTEXT-AWARE: playlist mirrors the currently filtered tracks so
@@ -141,6 +155,39 @@ export default function Vault() {
             <div className="text-zinc-400 px-4 py-1.5 text-xs animate-pulse font-bold tracking-wider">
               ⚠️ STREAM ERROR: CHECK BUCKET PERMISSIONS
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* ⚡ GLOBAL REAL-TIME SEARCH BAR — filters the catalog grid as you type */}
+      <div className="mb-6">
+        <div className="relative">
+          <svg
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z" />
+          </svg>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title, genre/mood, or BPM..."
+            aria-label="Search catalog"
+            className="w-full bg-zinc-900/60 border border-zinc-800 focus:border-green-500/60 focus:ring-2 focus:ring-green-500/20 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all backdrop-blur-md"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors p-1"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           )}
         </div>
       </div>
@@ -183,19 +230,22 @@ export default function Vault() {
           <div className="text-center py-12 text-zinc-400 font-mono text-sm">NO DATA FOUND IN SYNC_CATALOG.</div>
         ) : (
           filteredTracks.map((track, index) => {
-            if (!track || !track.id) return null;
+            // ⚡ DATA DESYNC FIX: never silently drop a track. Fall back to the
+            // array index as a stable key when `id` is missing so all 21 master
+            // recordings render in the grid.
+            const trackKey = track?.id ?? `track-${index}`;
             const isCurrent = activeTrack?.id === track.id;
             return (
               <motion.div
-                key={track.id}
+                key={trackKey}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, margin: '-40px' }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1], delay: index * 0.04 }}
-                className={`group grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b border-zinc-800/60 py-3 px-4 hover:bg-zinc-900/30 transition-colors ${
+                className={`group grid grid-cols-1 md:grid-cols-12 gap-4 items-center border-b py-3 px-4 transition-colors ${
                   isCurrent
-                    ? 'opacity-100 grayscale-0 bg-zinc-900/30'
-                    : 'opacity-50 grayscale hover:opacity-100 hover:grayscale-0 hover:bg-zinc-900/30'
+                    ? 'opacity-100 grayscale-0 bg-green-500/10 border-green-500/40 shadow-[inset_0_0_20px_rgba(34,197,94,0.08)]'
+                    : 'opacity-50 grayscale border-zinc-800/60 hover:opacity-100 hover:grayscale-0 hover:bg-zinc-900/30'
                 }`}
               >
                 {/* PLAY + TITLE & ASSET TYPE */}

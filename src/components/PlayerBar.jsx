@@ -4,6 +4,14 @@ import usePlayerStore from '../store/usePlayerStore';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 import { supabase } from '../utils/supabaseClient';
 
+// ⚡ TIME FORMATTER — mm:ss for the scrubber telemetry
+const formatTime = (seconds) => {
+  if (!isFinite(seconds) || seconds < 0) return '0:00';
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
 export default function ApexPlayerBar() {
   const activeTrack = usePlayerStore(state => state.activeTrack);
   const isPlaying = usePlayerStore(state => state.isPlaying);
@@ -15,11 +23,21 @@ export default function ApexPlayerBar() {
   const [hasError, setHasError] = useState(false);
   const [audioUrl, setAudioUrl] = useState('');
 
+  // ⚡ SCRUBBER TELEMETRY — currentTime + duration bound to the HTML5 audio engine
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [scrubValue, setScrubValue] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
+
   // ⚡ OMEGA STREAM RESOLUTION — pull the public URL from the vault-audio bucket
   useEffect(() => {
     if (activeTrack) {
       setHasError(false);
       setIsBuffering(true);
+      // Reset scrubber telemetry on track change
+      setCurrentTime(0);
+      setDuration(0);
+      setScrubValue(0);
       try {
         // ⚡ APEX CTO OVERRIDE: resolve through the shared sanitization pipeline
         // so `.mp3` is appended when missing and spaces are URL-encoded.
@@ -72,26 +90,69 @@ export default function ApexPlayerBar() {
     };
   }, [activeTrack]);
 
+  // ⚡ SCRUB COMMIT — seek the HTML5 audio engine to the drop point
+  const commitSeek = () => {
+    const audio = audioRef.current;
+    if (audio && isFinite(scrubValue)) {
+      audio.currentTime = scrubValue;
+      setCurrentTime(scrubValue);
+    }
+    setIsSeeking(false);
+  };
+
   if (!activeTrack) return null;
+
+  // ⚡ CORRECT TRACK TELEMETRY — always display the real track_title + artist
+  const displayTitle = activeTrack.track_title || activeTrack.title || 'UNKNOWN DATA';
+  const displayArtist = activeTrack.artist || 'JAMES RODNEY';
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4">
       {/* APEX GLASSMORPHIC CHASSIS */}
-      <div className="mx-auto max-w-6xl bg-black/80 backdrop-blur-xl border border-green-500/30 rounded-2xl p-5 flex items-center justify-between shadow-[0_0_40px_rgba(34,197,94,0.2)] transition-all duration-500">
+      <div className="mx-auto max-w-6xl bg-black/80 backdrop-blur-xl border border-green-500/30 rounded-2xl p-5 shadow-[0_0_40px_rgba(34,197,94,0.2)] transition-all duration-500">
 
         {/* TRACK TELEMETRY */}
-        <div className="flex flex-col border-l-4 border-green-500 pl-4 min-w-0">
+        <div className="flex flex-col border-l-4 border-green-500 pl-4 min-w-0 mb-4">
           <span className="font-extrabold text-xl text-white tracking-widest uppercase drop-shadow-md truncate">
-            {activeTrack.track_title || 'UNKNOWN DATA'}
+            {displayTitle}
           </span>
           <span className="text-sm text-green-400 font-mono uppercase tracking-wider truncate">
-            {activeTrack.artist || 'ANONYMOUS'} // <span className="text-gray-500">APEX SECURE STREAM</span>
+            {displayArtist} // <span className="text-gray-500">APEX SECURE STREAM</span>
           </span>
           {hasError && <span className="text-xs text-red-500 mt-1 animate-pulse font-bold">ERROR: STREAM OFFLINE</span>}
         </div>
 
+        {/* ⚡ INTERACTIVE AUDIO SCRUBBER — seek to any drop point in the master */}
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-xs text-green-400 font-mono tabular-nums w-12 text-right flex-shrink-0">
+            {formatTime(currentTime)}
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={duration || 0}
+            step={0.1}
+            value={scrubValue}
+            disabled={hasError || !audioUrl || !duration}
+            onChange={(e) => { setScrubValue(Number(e.target.value)); }}
+            onMouseDown={() => setIsSeeking(true)}
+            onTouchStart={() => setIsSeeking(true)}
+            onMouseUp={commitSeek}
+            onTouchEnd={commitSeek}
+            onKeyUp={commitSeek}
+            aria-label="Seek through track"
+            className="flex-1 h-1.5 appearance-none cursor-pointer rounded-full bg-zinc-800 accent-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{
+              background: `linear-gradient(to right, #22c55e ${duration ? (scrubValue / duration) * 100 : 0}%, #27272a ${duration ? (scrubValue / duration) * 100 : 0}%)`,
+            }}
+          />
+          <span className="text-xs text-zinc-500 font-mono tabular-nums w-12 flex-shrink-0">
+            {formatTime(duration)}
+          </span>
+        </div>
+
         {/* TACTICAL COMMAND CENTER */}
-        <div className="flex items-center gap-6 flex-shrink-0">
+        <div className="flex items-center justify-between gap-6">
           <button
             onClick={togglePlay}
             disabled={hasError || !audioUrl}
@@ -115,6 +176,13 @@ export default function ApexPlayerBar() {
           onPlaying={() => setIsBuffering(false)}
           onWaiting={() => setIsBuffering(true)}
           onError={() => { setHasError(true); setIsBuffering(false); }}
+          onLoadedMetadata={(e) => setDuration(e.target.duration)}
+          onTimeUpdate={(e) => {
+            if (!isSeeking) {
+              setCurrentTime(e.target.currentTime);
+              setScrubValue(e.target.currentTime);
+            }
+          }}
           preload="auto"
         />
       </div>
