@@ -8,6 +8,7 @@ export default function sanitizeFilename(name) {
     // Remove path traversal and separators
     .replace(/[\\/]/g, '_')
     // Remove control characters and reserved Windows filename chars
+    // eslint-disable-next-line no-control-regex -- intentional filename lockdown
     .replace(/[\x00-\x1f<>:"|?*]/g, '')
     // Collapse whitespace runs into single underscores
     .replace(/\s+/g, '_')

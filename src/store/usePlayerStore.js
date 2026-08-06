@@ -29,7 +29,7 @@ const formatTrackTitle = (rawTitle) => {
   if (!rawTitle) return "Untitled Track";
   return rawTitle
     .replace(/^_+/, '')
-    .replace(/\.mp3$|\.mp3$/i, '')
+    .replace(/\.(mp3|wav|flac|aiff|m4a)$/i, '')
     .trim();
 };
 
@@ -100,8 +100,6 @@ const usePlayerStore = create((set, get) => ({
     localStorage.removeItem(STORAGE_KEY);
     set({ activeTrack: null, isPlaying: false, currentTime: 0, sessionRestored: false, resumedFromTrack: null });
   },
-
-  openStems: (track) => console.log('Opening stems for', track.title),
 }));
 
 export default usePlayerStore;

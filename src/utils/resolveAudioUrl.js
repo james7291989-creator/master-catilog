@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { logWarn, logError } from './structuredLog';
 
 /**
  * ⚡ APEX SECURE STREAM RESOLUTION ENGINE ⚡
@@ -12,6 +13,8 @@ import { supabase } from './supabaseClient';
  *  - Input validated against path-traversal & control-character injection
  *  - No `getPublicUrl()` — replaced with `createSignedUrl()` (default 60s TTL)
  *  - Fail-closed on any validation error (returns null, never a raw string)
+ *  - Every failure path emits structured, aggregate-friendly diagnostic logs
+ *    so stream outages are traceable without leaking the URL inside console.
  */
 
 // How long (seconds) a signed URL remains valid. Short TTL = narrow scrape window.
@@ -21,6 +24,9 @@ const STORAGE_BUCKET = 'vault-audio';
 
 // Single source of truth for allowed audio extensions.
 const ALLOWED_AUDIO_EXTENSIONS = new Set(['.mp3', '.wav', '.flac', '.aiff', '.m4a']);
+
+// Track ID for diagnostics — never include the resolved URL itself.
+const trackRef = (track) => String(track?.id ?? track?.track_title ?? 'unknown');
 
 /**
  * Returns true when `filename` is a safe, single-segment storage key.
@@ -54,17 +60,26 @@ export function isSafeStorageKey(filename) {
 /**
  * Resolves a track to a short-lived, signed, in-vault audio URL.
  *
+ * Graceful-fallback contract:
+ *  - On success: returns the signed URL string.
+ *  - On ANY failure (validation, Supabase error, network): returns `null`
+ *    AFTER emitting structured diagnostic logs (never the URL itself).
+ *    The caller is responsible for keeping the player UI stable.
+ *
  * @param {object} track - raw catalog row
  * @returns {Promise<string|null>} expiring URL, or null if unreachable.
  */
 export async function resolveTrackAudioUrl(track) {
-  if (!track) return null;
+  if (!track) {
+    logWarn('stream.resolve.null_track', { reason: 'no_track_payload' });
+    return null;
+  }
 
   // 1. PRIMARY: secure bucket storage.
   const storageKey = track.file_name || track.storage_path || track.track_title;
   if (typeof storageKey === 'string' && storageKey.length > 0) {
     if (!isSafeStorageKey(storageKey)) {
-      console.warn('[SECURE STREAM] Blocked unsafe storage key:', storageKey);
+      logWarn('stream.resolve.blocked_key', { track: trackRef(track), reason: 'unsafe_storage_key' });
       return null;
     }
 
@@ -76,12 +91,19 @@ export async function resolveTrackAudioUrl(track) {
         });
 
       if (error) {
-        console.warn('[SECURE STREAM] Signed URL error:', error.message);
+        logError('stream.resolve.sign_error', { track: trackRef(track), message: error.message });
         return null;
       }
-      return data?.signedUrl ?? null;
+      if (!data?.signedUrl) {
+        logError('stream.resolve.empty_signed_url', { track: trackRef(track) });
+        return null;
+      }
+      return data.signedUrl;
     } catch (err) {
-      console.warn('[SECURE STREAM] Unexpected failure:', err?.message ?? err);
+      logError('stream.resolve.exception', {
+        track: trackRef(track),
+        message: err?.message ?? 'unknown error',
+      });
       return null;
     }
   }
@@ -90,9 +112,11 @@ export async function resolveTrackAudioUrl(track) {
   //    never a publicly-served directory). Kept only for migration tolerance.
   const legacyPath = track.master || track.audio_path;
   if (typeof legacyPath === 'string' && legacyPath.startsWith('/secure_assets/')) {
+    logWarn('stream.resolve.legacy_fallback', { track: trackRef(track) });
     return legacyPath;
   }
 
+  logWarn('stream.resolve.no_source', { track: trackRef(track) });
   return null;
 }
 

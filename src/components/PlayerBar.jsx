@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
+import { logWarn } from '../utils/structuredLog';
 
 // ⚡ TIME FORMATTER — mm:ss for the scrubber telemetry
 const formatTime = (seconds) => {
@@ -56,11 +57,23 @@ export default function ApexPlayerBar() {
         if (resolvedUrl && resolvedUrl !== '#') {
           setAudioUrl(resolvedUrl);
         } else {
-          throw new Error("Vault retrieval failed.");
+          // Graceful fallback: clear the stale URL and keep the UI stable.
+          // The shared resolver already emitted structured diagnostics —
+          // no URL is ever placed in the browser console here.
+          logWarn('player.stream.unavailable', {
+            track: activeTrack?.id ?? activeTrack?.track_title ?? 'unknown',
+          });
+          setAudioUrl('');
+          setHasError(true);
+          setIsBuffering(false);
         }
       } catch (error) {
         if (cancelled) return;
-        console.error("🚨 VAULT BREACH:", error);
+        logWarn('player.stream.exception', {
+          track: activeTrack?.id ?? activeTrack?.track_title ?? 'unknown',
+          message: error?.message ?? 'unknown error',
+        });
+        setAudioUrl('');
         setHasError(true);
         setIsBuffering(false);
       }
@@ -82,8 +95,10 @@ export default function ApexPlayerBar() {
         if (playPromise !== undefined) {
           playPromise
             .then(() => setIsBuffering(false))
-            .catch(err => {
-              console.error("Playback intercepted:", err);
+            .catch(() => {
+              logWarn('player.playback_intercepted', {
+                track: activeTrack?.id ?? activeTrack?.track_title ?? 'unknown',
+              });
               togglePlay();
             });
         }
@@ -91,7 +106,7 @@ export default function ApexPlayerBar() {
         audio.pause();
       }
     }
-  }, [isPlaying, audioUrl, togglePlay]);
+  }, [isPlaying, audioUrl, togglePlay, activeTrack]);
 
   // ⚡ TEARDOWN GUARD — release the media heap on unmount or track change
   useEffect(() => {
@@ -134,7 +149,7 @@ export default function ApexPlayerBar() {
           <span className="text-sm text-green-400 font-mono uppercase tracking-wider truncate">
             {displayArtist} // <span className="text-gray-500">APEX SECURE STREAM</span>
           </span>
-          {hasError && <span className="text-xs text-red-500 mt-1 animate-pulse font-bold">ERROR: STREAM OFFLINE</span>}
+          {hasError && <span className="text-xs text-red-500 mt-1 animate-pulse font-bold">SIGNED URL RESOLUTION FAILED — CHECK BUCKET CONFIG</span>}
         </div>
 
         {/* ⚡ INTERACTIVE AUDIO SCRUBBER — seek to any drop point in the master */}
@@ -187,6 +202,8 @@ export default function ApexPlayerBar() {
         <audio
           ref={audioRef}
           src={audioUrl}
+          controlsList="nodownload noplaybackrate"
+          disableRemotePlayback
           onEnded={playNextTrack}
           onPlaying={() => setIsBuffering(false)}
           onWaiting={() => setIsBuffering(true)}

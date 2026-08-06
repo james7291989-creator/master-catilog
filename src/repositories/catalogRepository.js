@@ -13,6 +13,7 @@
  */
 
 import { supabase } from '../utils/supabaseClient';
+import { logError } from '../utils/structuredLog';
 
 // ---------------------------------------------------------------------------
 // CACHE LAYER — Redis-style TTL cache (in-memory for the client bundle).
@@ -122,7 +123,7 @@ export async function fetchCatalogPage({
   const { data, error } = await query;
 
   if (error) {
-    console.error('[CATALOG REPO] Query failed:', error.message);
+    logError('catalog.repo.query_failed', { message: error.message });
     throw new Error('CATALOG_QUERY_FAILED');
   }
 
@@ -154,7 +155,7 @@ export async function fetchAllCatalog() {
     .order('track_title', { ascending: true });
 
   if (error) {
-    console.error('[CATALOG REPO] Full fetch failed:', error.message);
+    logError('catalog.repo.all_fetch_failed', { message: error.message });
     throw new Error('CATALOG_QUERY_FAILED');
   }
 

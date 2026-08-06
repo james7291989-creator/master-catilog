@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Play, Pause, Disc, Download } from 'lucide-react';
+import { Play, Pause, Disc } from 'lucide-react';
 import usePlayerStore from '../store/usePlayerStore';
 import LicenseModal from './LicenseModal';
-import BioModal from './BioModal';
 import TestimonyVault from './TestimonyVault';
 import hapticClick from '../utils/vibrate';
 import sanitizeFilename from '../utils/sanitizeFilename';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 import { sanitizeRecord } from '../utils/sanitizeText';
+import { logError } from '../utils/structuredLog';
 import { getCatalogAll, getUniqueMoods } from '../services/catalogService';
 
 export default function Vault() {
@@ -20,7 +20,6 @@ export default function Vault() {
   const [tracks, setTracks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [licenseTrack, setLicenseTrack] = useState(null);
-  const [bioOpen, setBioOpen] = useState(false);
   const [isTestimonyVaultBreached, setIsTestimonyVaultBreached] = useState(false);
   const [audioError, setAudioError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('All');
@@ -32,14 +31,14 @@ export default function Vault() {
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
-        console.log("🔥 APEX DIAGNOSTIC: Fetching catalog...");
         const data = await getCatalogAll();
-        console.log("🔥 APEX DIAGNOSTIC: Payload returned:", data);
         // ⚡ FORTRESS PROTOCOL: sanitize every tenant-supplied string field
         // before it enters the data grid (XSS defense-in-depth).
         setTracks((data || []).map(sanitizeRecord));
       } catch (error) {
-        console.error("🔥 APEX DIAGNOSTIC: Database Error:", error);
+        logError('vault.catalog_fetch_failed', {
+          message: error?.message ?? 'unknown error',
+        });
       } finally {
         setLoading(false);
       }
@@ -52,7 +51,7 @@ export default function Vault() {
     if (!rawTitle) return "Untitled Track";
     return rawTitle
       .replace(/^_+/, '')
-      .replace(/\.mp3$|\.mp3$/i, '')
+      .replace(/\.(mp3|wav|flac|aiff|m4a)$/i, '')
       .trim();
   };
 
@@ -77,11 +76,12 @@ export default function Vault() {
     const finalAudioUrl = await resolveTrackAudioUrl(track);
 
     if (!finalAudioUrl) {
-      setAudioError('STREAM UNAVAILABLE: SIGNED URL FAILED');
+      setAudioError('SIGNED URL RESOLUTION FAILED');
       return;
     }
 
-    console.log("🚀 APEX STREAMING FROM:", finalAudioUrl);
+    // NEVER log the signed URL — the resolver already emitted structured
+    // diagnostics that exclude the URL itself (FORTRESS PROTOCOL).
     
     // Force the player to recognize the FULL SECURE URL as the audio source
     const mappedTrack = {
@@ -150,26 +150,26 @@ export default function Vault() {
 
   return (
     <div id="vault" className="max-w-7xl mx-auto px-6 py-12">
-      {/* HEADER — stripped of all borders and colors */}
-      <div className="mb-8 flex justify-between items-center pb-4">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight text-white">The Vault</h2>
-          <p className="text-zinc-400 text-sm mt-1">Tier-1 Music Supervisor Sync Catalog — {tracks.length} Master Recordings</p>
+        {/* HEADER — stripped of all borders and colors */}
+        <div className="mb-8 flex justify-between items-center pb-4">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight text-white">The Vault</h2>
+            <p className="text-zinc-400 text-sm mt-1">Tier-1 Music Supervisor Sync Catalog — {tracks.length} Master Recordings</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setIsTestimonyVaultBreached(true); hapticClick(); }}
+              className="text-[10px] tracking-[0.2em] text-zinc-400 hover:text-white uppercase transition-colors"
+            >
+              The Artist's Story
+            </button>
+            {audioError && (
+              <div className="text-red-400 px-4 py-1.5 text-xs animate-pulse font-bold tracking-wider">
+                ⚠️ {audioError}: CHECK BUCKET CONFIG
+              </div>
+            )}
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { setIsTestimonyVaultBreached(true); hapticClick(); }}
-            className="text-[10px] tracking-[0.2em] text-zinc-400 hover:text-white uppercase transition-colors"
-          >
-            The Artist's Story
-          </button>
-          {audioError && (
-            <div className="text-zinc-400 px-4 py-1.5 text-xs animate-pulse font-bold tracking-wider">
-              ⚠️ STREAM ERROR: CHECK BUCKET PERMISSIONS
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* ⚡ GLOBAL REAL-TIME SEARCH BAR — filters the catalog grid as you type */}
       <div className="mb-6">
@@ -343,10 +343,6 @@ export default function Vault() {
       <LicenseModal
         track={licenseTrack}
         onClose={() => setLicenseTrack(null)}
-      />
-      <BioModal
-        isOpen={bioOpen}
-        onClose={() => setBioOpen(false)}
       />
       <TestimonyVault
         isBreached={isTestimonyVaultBreached}

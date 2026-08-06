@@ -17,6 +17,7 @@
 const SCRIPT_TAG = /<\s*\/?\s*(script|iframe|object|embed|link|meta|style|form|svg|math)\b[^>]*>/gi;
 const EVENT_HANDLER = /\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi;
 const JAVASCRIPT_URI = /(javascript|vbscript|data)\s*:/gi;
+// eslint-disable-next-line no-control-regex -- intentional XSS defense-in-depth
 const CONTROL_CHARS = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
 const ZERO_WIDTH = /[\u200b-\u200d\u2060\ufeff]/g;
 const HTML_ENTITIES = /&(lt|gt|quot|#0?3[4-9]|#x?2[2-6]);/gi;

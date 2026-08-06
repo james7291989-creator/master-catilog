@@ -17,7 +17,6 @@ let moduleCtx = null;
 let moduleSource = null;
 let moduleAnalyser = null;
 let moduleInitialized = false;
-let moduleAudioElement = null; // track which <audio> element the source is bound to
 
 export default function useAudioAnalyzer(audioElement, isActive = false) {
   const rafRef = useRef(null);
@@ -44,7 +43,6 @@ export default function useAudioAnalyzer(audioElement, isActive = false) {
     moduleSource = null;
     moduleAnalyser = null;
     moduleInitialized = false;
-    moduleAudioElement = null;
   }, []);
 
   useEffect(() => {
@@ -73,7 +71,6 @@ export default function useAudioAnalyzer(audioElement, isActive = false) {
           source.connect(analyser);
           analyser.connect(ctx.destination);
           moduleSource = source;
-          moduleAudioElement = audioElement;
 
           moduleInitialized = true;
         } else {
@@ -111,8 +108,8 @@ export default function useAudioAnalyzer(audioElement, isActive = false) {
         };
 
         tick();
-      } catch (e) {
-        console.warn('Audio analyzer init failed:', e);
+      } catch {
+        // Analyzer init is best-effort; the player continues without visuals.
         setSpectrum({ bass: 0, mid: 0, treble: 0 });
       }
     };
