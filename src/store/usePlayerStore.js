@@ -33,13 +33,13 @@ const formatTrackTitle = (rawTitle) => {
     .trim();
 };
 
-// Helper: maps a raw DB track into a playable track object with secure URL
-// ⚡ APEX CTO OVERRIDE: resolves through the shared sanitization pipeline
-// (utils/resolveAudioUrl.js) so `.mp3` is appended when missing and spaces
-// are URL-encoded. MP3 masters stream from public/; everything else resolves
-// through the `vault-audio` Supabase bucket.
-const mapTrackWithUrl = (track) => {
-  const finalAudioUrl = resolveTrackAudioUrl(track);
+// Helper: maps a raw DB track into a playable track object with secure URL.
+// ⚡ FORTRESS PROTOCOL: resolves through the shared async signed-URL pipeline
+// (utils/resolveAudioUrl.js). The URL is short-lived (60s TTL) so it is
+// re-resolved on every play next/advance — never cached client-side beyond
+// the active playback session.
+const mapTrackWithUrl = async (track) => {
+  const finalAudioUrl = await resolveTrackAudioUrl(track);
   return {
     ...track,
     id: track.id,
@@ -72,7 +72,7 @@ const usePlayerStore = create((set, get) => ({
 
   setPlaylist: (tracks) => set({ playlist: tracks }),
 
-  playNextTrack: () => {
+  playNextTrack: async () => {
     const { playlist, activeTrack } = get();
     if (!playlist.length || !activeTrack) return;
     const currentIndex = playlist.findIndex((t) => t.id === activeTrack.id);
@@ -81,7 +81,7 @@ const usePlayerStore = create((set, get) => ({
     const nextIndex = currentIndex === -1
       ? 0
       : (currentIndex + 1) % playlist.length;
-    const nextTrack = mapTrackWithUrl(playlist[nextIndex]);
+    const nextTrack = await mapTrackWithUrl(playlist[nextIndex]);
     saveSession({ track: nextTrack, currentTime: 0 });
     set({ activeTrack: nextTrack, isPlaying: true, currentTime: 0 });
   },

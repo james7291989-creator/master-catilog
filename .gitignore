@@ -1,4 +1,6 @@
-# Logs
+# ⚡ APEX FORTRESS GITIGNORE ⚡
+
+# --- Logs ---
 logs
 *.log
 npm-debug.log*
@@ -7,12 +9,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# --- Dependencies ---
 node_modules
 dist
 dist-ssr
+
+# --- Environment (NEVER commit secrets) ---
+.env
+.env.*
+!.env.example
 *.local
 
-# Editor directories and files
+# --- Editor directories and files ---
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -23,12 +31,21 @@ dist-ssr
 *.sln
 *.sw?
 
+# --- Build / deploy ---
 .vercel
-.env*
+.next
+out
 
-# Audio files - too large for git
-public/audio/
+# --- Audio assets (moved to private storage; never in git) ---
 *.wav
 *.mp3
 *.flac
 *.aiff
+*.m4a
+secure_assets/
+
+# --- OS / cache ---
+Thumbs.db
+Desktop.ini
+.cache/
+.tmp/

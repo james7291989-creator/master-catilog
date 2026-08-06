@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, Disc, Download } from 'lucide-react';
-import { supabase } from '../utils/supabaseClient';
 import usePlayerStore from '../store/usePlayerStore';
 import LicenseModal from './LicenseModal';
 import BioModal from './BioModal';
@@ -9,6 +8,8 @@ import TestimonyVault from './TestimonyVault';
 import hapticClick from '../utils/vibrate';
 import sanitizeFilename from '../utils/sanitizeFilename';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
+import { sanitizeRecord } from '../utils/sanitizeText';
+import { getCatalogAll, getUniqueMoods } from '../services/catalogService';
 
 export default function Vault() {
   const activeTrack = usePlayerStore(state => state.activeTrack);
@@ -26,18 +27,17 @@ export default function Vault() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // 1. FETCH EXCLUSIVELY FROM THE REAL CATALOG
+  // ⚡ CLEAN ARCHITECTURE: Delivery layer depends on the Service interface,
+  // never on Supabase directly. The Service handles caching + pagination.
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
         console.log("🔥 APEX DIAGNOSTIC: Fetching catalog...");
-        const { data, error } = await supabase
-          .from('sync_catalog')
-          .select('*')
-          .order('track_title', { ascending: true });
-
+        const data = await getCatalogAll();
         console.log("🔥 APEX DIAGNOSTIC: Payload returned:", data);
-        if (error) throw error;
-        setTracks(data || []);
+        // ⚡ FORTRESS PROTOCOL: sanitize every tenant-supplied string field
+        // before it enters the data grid (XSS defense-in-depth).
+        setTracks((data || []).map(sanitizeRecord));
       } catch (error) {
         console.error("🔥 APEX DIAGNOSTIC: Database Error:", error);
       } finally {
@@ -62,7 +62,7 @@ export default function Vault() {
   // are URL-encoded. The vault can never drift into a dead path again.
 
   // 3. BULLETPROOF AUDIO BINDING
-  function handlePlayClick(track) {
+  async function handlePlayClick(track) {
     setAudioError(null);
     
     // ⚡ CONTEXT-AWARE PLAYLIST INJECTION: sync the global playlist to the
@@ -71,9 +71,15 @@ export default function Vault() {
       setPlaylist(filteredTracks);
     }
 
-    // ⚡ APEX CTO OVERRIDE: RESOLVE THE AUDIO URL THROUGH THE SHARED PIPELINE
-    // MP3 -> public/ directory stream; WAV -> Supabase public bucket stream.
-    const finalAudioUrl = resolveTrackAudioUrl(track);
+    // ⚡ FORTRESS PROTOCOL: RESOLVE THE AUDIO URL THROUGH THE SHARED ASYNC
+    // SIGNED-URL PIPELINE. The URL is short-lived (60s TTL) and never
+    // exposed as a permanent public link.
+    const finalAudioUrl = await resolveTrackAudioUrl(track);
+
+    if (!finalAudioUrl) {
+      setAudioError('STREAM UNAVAILABLE: SIGNED URL FAILED');
+      return;
+    }
 
     console.log("🚀 APEX STREAMING FROM:", finalAudioUrl);
     
@@ -99,14 +105,20 @@ export default function Vault() {
   // =========================================
 
   // DYNAMIC EXTRACTION: pull unique moods/genres from the catalog array
-  const uniqueMoods = useMemo(() => {
-    const moodSet = new Set();
-    tracks.forEach((track) => {
-      const mood = track?.mood?.trim();
-      if (mood && mood !== 'Multi-Genre') moodSet.add(mood);
-    });
-    return ['All', ...Array.from(moodSet).sort()];
-  }, [tracks]);
+  // ⚡ CLEAN ARCHITECTURE: mood extraction delegated to the Service layer.
+  const [uniqueMoods, setUniqueMoods] = useState(['All']);
+
+  useEffect(() => {
+    let cancelled = false;
+    getUniqueMoods()
+      .then((moods) => {
+        if (!cancelled) setUniqueMoods(moods);
+      })
+      .catch(() => {
+        if (!cancelled) setUniqueMoods(['All']);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   // MEMOIZATION: filtered track mapping array bound to activeFilter + searchQuery
   // ⚡ GLOBAL REAL-TIME SEARCH — matches against track_title, genre_mood/mood,
@@ -285,19 +297,26 @@ export default function Vault() {
                 <div className="col-span-12 md:col-span-3">
                   <div className="flex items-center justify-end gap-3 w-full pr-2">
                     {/* [ACTION A: ASSET ACQUISITION] — Temp MP3 (Secondary) */}
+                    {/* ⚡ FORTRESS PROTOCOL: downloads are gated behind the same
+                        signed-URL pipeline. The anchor is disabled until a fresh
+                        signed URL is resolved, preventing permanent-link scraping. */}
                     <a
-                        href={(() => {
-                            // ⚡ APEX CTO OVERRIDE: resolve through the shared sanitization
-                            // pipeline so `.mp3` is appended when missing and spaces are
-                            // URL-encoded (e.g. `Baby%20You%20There.mp3`).
-                            const url = resolveTrackAudioUrl(track);
-                            if (url && url !== '#' && url.includes('supabase.co')) {
-                                return `${url}?download=${encodeURIComponent(sanitizeFilename(track.title) + '_Temp.mp3')}`;
+                        href="#"
+                        onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const url = await resolveTrackAudioUrl(track);
+                            if (url) {
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${sanitizeFilename(track.title)}_Temp_Master.mp3`;
+                                document.body.appendChild(a);
+                                a.click();
+                                a.remove();
+                            } else {
+                                setAudioError('DOWNLOAD UNAVAILABLE: SIGNED URL FAILED');
                             }
-                            return url && url !== '#' ? url : '#';
-                        })()}
-                        download={`${sanitizeFilename(track.title)}_Temp_Master.mp3`}
-                        onClick={(e) => e.stopPropagation()}
+                        }}
                         className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-600 px-4 py-2.5 text-xs font-bold tracking-wider transition-all duration-200 cursor-pointer"
                     >
                         Temp MP3

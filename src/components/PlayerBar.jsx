@@ -2,7 +2,6 @@
 import { useState, useRef, useEffect } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
-import { supabase } from '../utils/supabaseClient';
 
 // ⚡ TIME FORMATTER — mm:ss for the scrubber telemetry
 const formatTime = (seconds) => {
@@ -29,19 +28,30 @@ export default function ApexPlayerBar() {
   const [scrubValue, setScrubValue] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
 
-  // ⚡ OMEGA STREAM RESOLUTION — pull the public URL from the vault-audio bucket
+  // ⚡ OMEGA STREAM RESOLUTION — pull a short-lived signed URL from the
+  // private vault-audio bucket. FORTRESS PROTOCOL: never a permanent public URL.
   useEffect(() => {
-    if (activeTrack) {
+    let cancelled = false;
+
+    const resolveStream = async () => {
+      if (!activeTrack) {
+        setAudioUrl('');
+        return;
+      }
+
       setHasError(false);
       setIsBuffering(true);
       // Reset scrubber telemetry on track change
       setCurrentTime(0);
       setDuration(0);
       setScrubValue(0);
+
       try {
-        // ⚡ APEX CTO OVERRIDE: resolve through the shared sanitization pipeline
-        // so `.mp3` is appended when missing and spaces are URL-encoded.
-        const resolvedUrl = resolveTrackAudioUrl(activeTrack);
+        // ⚡ FORTRESS PROTOCOL: resolve through the shared async signed-URL
+        // pipeline. The URL is short-lived (60s TTL) and re-resolved per track.
+        const resolvedUrl = await resolveTrackAudioUrl(activeTrack);
+
+        if (cancelled) return;
 
         if (resolvedUrl && resolvedUrl !== '#') {
           setAudioUrl(resolvedUrl);
@@ -49,13 +59,18 @@ export default function ApexPlayerBar() {
           throw new Error("Vault retrieval failed.");
         }
       } catch (error) {
+        if (cancelled) return;
         console.error("🚨 VAULT BREACH:", error);
         setHasError(true);
         setIsBuffering(false);
       }
-    } else {
-      setAudioUrl('');
-    }
+    };
+
+    resolveStream();
+
+    return () => {
+      cancelled = true;
+    };
   }, [activeTrack]);
 
   // ⚡ PLAYBACK ENGINE — react to isPlaying + audioUrl changes
