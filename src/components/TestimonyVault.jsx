@@ -48,12 +48,15 @@ export default function TestimonyVault({ isBreached, onClose }) {
               </h2>
             </div>
 
-            {/* THE REAL TESTIMONY : CINEMATIC MANIFESTO PAYLOAD */}
+            {/* THE REAL TESTIMONY : CINEMATIC MANIFESTO PAYLOAD
+                ⚡ APEX EDITORIAL TYPOGRAPHY: constrained line length (max-w-3xl),
+                generous paragraph spacing (space-y-6), open tracking, and emerald
+                quotecallout hierarchy — zero text-wall fatigue on high-res panels. */}
             <div className="px-2 md:px-8">
-              <div className="flex flex-col space-y-8 text-zinc-300 font-sans leading-loose tracking-wide px-4 md:px-12 py-8">
+              <div className="mx-auto max-w-3xl flex flex-col text-zinc-300 font-sans leading-relaxed tracking-wide px-4 md:px-12 py-8">
 
                 {/* MANIFESTO BODY — RAW TESTIMONY, reads like a legal manifesto */}
-                <div className="space-y-6 text-lg md:text-xl text-zinc-300 leading-loose">
+                <div className="space-y-6 text-lg md:text-xl text-zinc-300 leading-relaxed">
                   <p>
                     Welcome, and thank you for your support. I’m James Rodney Arms Jr. I am 37 years old, and while I am developing several projects, this album is the first I am sharing publicly.
                   </p>
@@ -61,6 +64,10 @@ export default function TestimonyVault({ isBreached, onClose }) {
                   <p>
                     Every track on this album is built on raw emotion and real-life events. There is nothing fabricated here—this is my actual life. I enjoy sharing my story with you, and I am currently writing a book titled <strong>'My Real Testimony'</strong>, which will be available soon.
                   </p>
+
+                  <blockquote className="border-l-4 border-emerald-400 pl-4 my-6 text-white font-medium italic tracking-wide">
+                    "We aren't just making media here. We are changing realities."
+                  </blockquote>
 
                   <p>
                     My childhood wasn't like most. I bounced from place to place until I was old enough to drive. After buying my first vehicle from my dad, I hit the road, traveling across Missouri and living purely off the grit of my soul. I never really had a stable home, and the pressure of my circumstances forced me to grow up fast. I didn't get the chance to have a normal childhood.
@@ -70,8 +77,12 @@ export default function TestimonyVault({ isBreached, onClose }) {
                     My early run-ins with law enforcement showed me just how deeply broken our justice system is. It is hard to watch a system that too often traps our own people—stripping away constitutional rights through 'warrant by information'—while others get to live the American Dream. We have a system that tears families apart, sometimes taking kids away just because a parent struggles, and in doing so, the state ends up raising the next generation of criminals.
                   </p>
 
+                  <blockquote className="border-l-4 border-emerald-400 pl-4 my-6 text-white font-medium italic tracking-wide">
+                    "If I can change just one kid's life—by making sure they receive a real education instead of being locked in a box by the state—my life's goal will be accomplished. But I won't stop at just one."
+                  </blockquote>
+
                   <p>
-                    This brings me to my ultimate mission. This album is just the beginning of the <strong>Rodney and Sons Foundation</strong>. I am building a legacy to change the way our system operates and to defend our constitutional rights. If I can change just one kid's life—by making sure they receive a real education instead of being locked in a box by the state—my life's goal will be accomplished. But I won't stop at just one.
+                    This brings me to my ultimate mission. This album is just the beginning of the <strong>Rodney and Sons Foundation</strong>. I am building a legacy to change the way our system operates and to defend our constitutional rights.
                   </p>
 
                   <p>

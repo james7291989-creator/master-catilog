@@ -264,8 +264,11 @@ export default function Vault() {
                 <div className="col-span-12 md:col-span-5 flex items-center gap-3">
                   <button
                     onClick={() => { handlePlayClick(track); hapticClick(); }}
-                    className={`p-2 transition-all flex items-center justify-center flex-shrink-0 ${
-                      isCurrent ? 'text-white' : 'text-zinc-400 hover:text-white'
+                    aria-label={isCurrent && isPlaying ? `Pause ${formatTrackTitle(track.track_title)}` : `Play ${formatTrackTitle(track.track_title)}`}
+                    className={`p-2 transition-all duration-200 flex items-center justify-center flex-shrink-0 rounded-full border ${
+                      isCurrent
+                        ? 'text-white bg-emerald-600/20 border-emerald-500/50 shadow-[0_0_12px_rgba(16,185,129,0.3)]'
+                        : 'text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800'
                     }`}
                   >
                     {isCurrent && isPlaying ? <Pause size={14} className="fill-current" /> : <Play size={14} className="fill-current ml-0.5" />}
@@ -286,11 +289,19 @@ export default function Vault() {
                    <span className="text-xs text-zinc-300 font-medium tracking-wide">{track.mood || 'Multi-Genre'}</span>
                 </div>
 
-                {/* BPM — strict WCAG contrast */}
-                <div className="hidden md:block md:col-span-1">
-                   <span className="text-xs text-zinc-300 font-mono">
-                     {track.bpm ? `${track.bpm} BPM` : '--- BPM'} <span className="text-zinc-300 px-1">•</span> KEY: {track.key ? track.key.toUpperCase() : '--'}
-                   </span>
+                {/* BPM — strict WCAG contrast
+                    ⚡ APEX GRACEFUL DEGRADATION: when metadata is absent we render
+                    a subtle PENDING tag instead of broken dashes — honest, styled,
+                    instantly legible to a Tier-1 supervisor scanning for tempo. */}
+                <div className="hidden md:flex md:col-span-1 flex-col gap-1">
+                  {track.bpm ? (
+                    <span className="text-xs text-zinc-300 font-mono">{track.bpm} BPM</span>
+                  ) : (
+                    <span className="opacity-40 font-mono text-xs uppercase tracking-wider text-zinc-400">Pending BPM</span>
+                  )}
+                  <span className="text-xs text-zinc-300 font-mono">
+                    KEY: {track.key ? track.key.toUpperCase() : <span className="opacity-40 text-zinc-400">--</span>}
+                  </span>
                 </div>
 
                 {/* ACTION — BIFURCATED CONVERSION FUNNEL */}

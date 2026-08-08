@@ -1,4 +1,25 @@
+import { useState, useEffect } from 'react';
+import { getCatalogAll } from '../services/catalogService';
+
 export default function HeroSection() {
+  const [catalogCount, setCatalogCount] = useState(0);
+
+  // ⚡ DYNAMIC DATA HYDRAULICS: the Broadcast Masters counter is bound directly
+  // to the live Supabase sync_catalog payload length — zero hardcoded metrics,
+  // zero data distrust. The repository layer caches this for 60s, so the
+  // Vault grid and hero stay perfectly in sync on every mount.
+  useEffect(() => {
+    let cancelled = false;
+    getCatalogAll()
+      .then((rows) => {
+        if (!cancelled) setCatalogCount(Array.isArray(rows) ? rows.length : 0);
+      })
+      .catch(() => {
+        if (!cancelled) setCatalogCount(0);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
   const scrollToVault = () => {
     document.getElementById('vault')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -78,10 +99,12 @@ export default function HeroSection() {
               <span className="transition-transform duration-300 group-hover:translate-x-1">→</span>
             </button>
 
-            {/* Stats Grid — floating in empty space, no boxes, no borders, no colors */}
+            {/* Stats Grid — floating in empty space, no boxes, no borders, no colors
+                ⚡ APEX DATA HYDRAULICS: Broadcast Masters is bound to the live
+                Supabase sync_catalog payload length — never a hardcoded number. */}
             <div className="grid grid-cols-4 gap-12 mb-12">
               {[
-                { label: 'Broadcast Masters', value: '27' },
+                { label: 'Broadcast Masters', value: catalogCount || '–' },
                 { label: 'Wav 24-Bit Stems', value: '7' },
                 { label: 'Lufs Mastered', value: '-14' },
                 { label: 'Turnaround', value: '24HR' },

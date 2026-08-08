@@ -137,9 +137,9 @@ export default function ApexPlayerBar() {
   const displayArtist = activeTrack.artist || 'JAMES RODNEY';
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4">
-      {/* APEX GLASSMORPHIC CHASSIS */}
-      <div className="mx-auto max-w-6xl bg-black/80 backdrop-blur-xl border border-green-500/30 rounded-2xl p-5 shadow-[0_0_40px_rgba(34,197,94,0.2)] transition-all duration-500">
+    <div className="fixed bottom-0 left-0 right-0 z-[100] p-4">
+      {/* APEX GLASSMORPHIC CHASSIS — high-density insulation, elevated above all scroll content */}
+      <div className="mx-auto max-w-6xl bg-black/90 backdrop-blur-xl border-t border-emerald-500/20 rounded-2xl p-5 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] transition-all duration-500">
 
         {/* TRACK TELEMETRY */}
         <div className="flex flex-col border-l-4 border-green-500 pl-4 min-w-0 mb-4">

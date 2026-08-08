@@ -11,7 +11,7 @@ export default function App() {
         <Route
           path="/"
           element={
-            <div className="min-h-screen bg-black text-white font-body pb-28 overflow-x-hidden">
+            <div className="min-h-screen bg-black text-white font-body pb-44 lg:pb-52 overflow-x-hidden">
               {/* BACKGROUND IMAGE — grayscale, high contrast, low brightness — stripped of all color */}
               <div
                 className="fixed inset-0 z-[-2] bg-cover bg-center bg-no-repeat"
@@ -25,6 +25,9 @@ export default function App() {
                 <HeroSection />
                 <Vault />
               </div>
+              {/* ⚡ APEX PLAYER INSULATION: fixed glass chassis sits above all
+                  content, insulated by the pb-44/lg:pb-52 viewport clearance so
+                  no tracklist item or bio section is ever covered on scroll. */}
               <PlayerBar />
             </div>
           }
