@@ -12,9 +12,12 @@ export default function App() {
           path="/"
           element={
             <div className="min-h-screen bg-black text-white font-body pb-44 lg:pb-52 overflow-x-hidden">
-              {/* BACKGROUND IMAGE — grayscale, high contrast, low brightness — stripped of all color */}
+              {/* BACKGROUND IMAGE — grayscale, high contrast, low brightness — stripped of all color
+                  ⚡ THE BREATH ENGINE: the deep background inhales/exhales on a 20s
+                  GPU-accelerated loop. Content sits on z-10 above it, so text stays
+                  perfectly crisp while the void breathes behind the vault. */}
               <div
-                className="fixed inset-0 z-[-2] bg-cover bg-center bg-no-repeat"
+                className="fixed inset-0 z-[-2] bg-cover bg-center bg-no-repeat animate-breathe"
                 style={{
                   backgroundImage: "url('/bg.jpg')",
                   filter: 'grayscale(100%) contrast(120%) brightness(40%)',

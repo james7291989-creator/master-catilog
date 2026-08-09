@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getCatalogAll } from '../services/catalogService';
 
 export default function HeroSection() {
   const [catalogCount, setCatalogCount] = useState(0);
+  const [activeNav, setActiveNav] = useState('Vault');
+  const location = useLocation();
 
   // ⚡ DYNAMIC DATA HYDRAULICS: the Broadcast Masters counter is bound directly
   // to the live Supabase sync_catalog payload length — zero hardcoded metrics,
@@ -27,11 +30,19 @@ export default function HeroSection() {
   // ⚡ APEX CTO OVERRIDE: ZERO DEAD LINKS — every nav item carries a live href.
   // Mission -> the mission page; Contact -> the admin inbox via mailto.
   const NAV_ITEMS = [
-    { label: 'Vault', href: '#vault', onClick: scrollToVault },
-    { label: 'Software Dev', href: '#vault', onClick: scrollToVault },
-    { label: 'Mission', href: '/mission', onClick: null },
-    { label: 'Contact', href: 'mailto:james72919879@gmail.com', onClick: null },
+    { label: 'Vault', href: '#vault', onClick: () => { setActiveNav('Vault'); scrollToVault(); } },
+    { label: 'Software Dev', href: '#vault', onClick: () => { setActiveNav('Software Dev'); scrollToVault(); } },
+    { label: 'Mission', href: '/mission', onClick: () => setActiveNav('Mission') },
+    { label: 'Contact', href: 'mailto:james72919879@gmail.com', onClick: () => setActiveNav('Contact') },
   ];
+
+  // ⚡ INSTITUTIONAL POLISH: sync active nav state with the current route
+  // so the Mission link stays highlighted when the user navigates to /mission.
+  useEffect(() => {
+    if (location.pathname === '/mission') {
+      setActiveNav('Mission');
+    }
+  }, [location.pathname]);
 
   return (
     <>
@@ -53,18 +64,26 @@ export default function HeroSection() {
           RodneyA
         </p>
         <ul className="hidden md:flex items-center space-x-8 text-sm font-medium text-zinc-500">
-          {NAV_ITEMS.map(({ label, href, onClick }) => (
-            <li key={label}>
-              <a
-                href={href}
-                {...(onClick ? { onClick } : {})}
-                aria-label={label}
-                className="hover:text-white transition-colors"
-              >
-                {label}
-              </a>
-            </li>
-          ))}
+          {NAV_ITEMS.map(({ label, href, onClick }) => {
+            const isActive = activeNav === label;
+            return (
+              <li key={label}>
+                <a
+                  href={href}
+                  onClick={onClick}
+                  aria-label={label}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`transition-colors pb-1 ${
+                    isActive
+                      ? 'text-emerald-400 border-b border-emerald-400'
+                      : 'hover:text-white'
+                  }`}
+                >
+                  {label}
+                </a>
+              </li>
+            );
+          })}
         </ul>
         <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-zinc-400">
           R

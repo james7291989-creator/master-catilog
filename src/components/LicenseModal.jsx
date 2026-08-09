@@ -3,14 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, X } from 'lucide-react';
 
 // ⚡ PHASE 5: LEAD CAPTURE ENGINE — mailto action target
-// Placeholder inbox — swap for the real licensing address when live.
-const LICENSING_EMAIL = 'licensing@yourdomain.com';
-
-// Media type options for the dropdown
-const MEDIA_TYPES = ['Film', 'Television', 'Video Game', 'Advertising', 'Other'];
-
-// Estimated budget tiers for the dropdown
-const BUDGET_RANGES = ['Micro-Sync <$1K', 'Indie $1K-$5K', 'Studio $5K+'];
+// Live licensing inbox — every intake request lands here pre-filled.
+const LICENSING_EMAIL = 'rodneyandsonsfoundation@gmail.com';
 
 const inputBaseClass =
   'w-full bg-black/60 border border-zinc-800 text-white text-sm px-4 py-3 placeholder-zinc-600 outline-none transition-all duration-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40';
@@ -26,12 +20,11 @@ export default function LicenseModal({ track, onClose }) {
         .trim()
     : 'Untitled Track';
 
-  // ⚡ LEAD CAPTURE FORM STATE
+  // ⚡ LEAD CAPTURE FORM STATE — Name, Production Company, Intended Media Use
   const [formData, setFormData] = useState({
+    name: '',
     company: '',
-    projectTitle: '',
-    mediaType: '',
-    budgetRange: '',
+    mediaUse: '',
   });
 
   const handleChange = (e) => {
@@ -41,7 +34,7 @@ export default function LicenseModal({ track, onClose }) {
 
   // =============================================================================
   // ⚡ ACTION ENGINE — compile the form into a URL-encoded mailto: string and
-  // fire the user's default mail client. No backend required.
+  // fire the user's default mail client, then close the modal. No backend required.
   // =============================================================================
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -53,10 +46,9 @@ export default function LicenseModal({ track, onClose }) {
       '=======================',
       '',
       `Track: ${trackTitle}`,
-      `Company/Studio: ${formData.company}`,
-      `Project Title: ${formData.projectTitle}`,
-      `Media Type: ${formData.mediaType}`,
-      `Estimated Budget Range: ${formData.budgetRange}`,
+      `Name: ${formData.name}`,
+      `Production Company: ${formData.company}`,
+      `Intended Media Use: ${formData.mediaUse}`,
       '',
       '— Sent from The Vault',
     ].join('\n');
@@ -65,8 +57,9 @@ export default function LicenseModal({ track, onClose }) {
       subject
     )}&body=${encodeURIComponent(body)}`;
 
-    // ⚡ Open the user's default mail client instantly
+    // ⚡ Open the user's default mail client instantly, then close the modal
     window.location.href = mailto;
+    onClose();
   };
 
   return (
@@ -78,7 +71,7 @@ export default function LicenseModal({ track, onClose }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
           onClick={onClose}
-          className="fixed inset-0 bg-black/90 backdrop-blur-xl flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[200] p-4"
         >
           <motion.div
             initial={{ scale: 0.9, y: 40, opacity: 0 }}
@@ -88,8 +81,8 @@ export default function LicenseModal({ track, onClose }) {
             onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-lg"
           >
-            {/* Main Card */}
-            <div className="relative bg-zinc-950 border border-zinc-900 overflow-hidden">
+            {/* Main Card — glass-morphic intake form */}
+            <div className="relative bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden">
               {/* Content */}
               <div className="p-8 space-y-6">
                 {/* Header */}
@@ -127,7 +120,20 @@ export default function LicenseModal({ track, onClose }) {
                 {/* Inline Form */}
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className={labelClass}>Company / Studio Name</label>
+                    <label className={labelClass}>Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleChange}
+                      required
+                      placeholder="Your full name"
+                      className={inputBaseClass}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Production Company</label>
                     <input
                       type="text"
                       name="company"
@@ -140,56 +146,16 @@ export default function LicenseModal({ track, onClose }) {
                   </div>
 
                   <div>
-                    <label className={labelClass}>Project Title</label>
-                    <input
-                      type="text"
-                      name="projectTitle"
-                      value={formData.projectTitle}
+                    <label className={labelClass}>Intended Media Use</label>
+                    <textarea
+                      name="mediaUse"
+                      value={formData.mediaUse}
                       onChange={handleChange}
                       required
-                      placeholder="Film, series, or project title"
-                      className={inputBaseClass}
+                      rows={3}
+                      placeholder="Film, series, ad campaign, video game — describe the intended use"
+                      className={`${inputBaseClass} resize-none`}
                     />
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>Media Type</label>
-                    <select
-                      name="mediaType"
-                      value={formData.mediaType}
-                      onChange={handleChange}
-                      required
-                      className={`${inputBaseClass} appearance-none cursor-pointer`}
-                    >
-                      <option value="" disabled>
-                        Select media type
-                      </option>
-                      {MEDIA_TYPES.map((type) => (
-                        <option key={type} value={type} className="bg-zinc-900 text-white">
-                          {type}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className={labelClass}>Estimated Budget Range</label>
-                    <select
-                      name="budgetRange"
-                      value={formData.budgetRange}
-                      onChange={handleChange}
-                      required
-                      className={`${inputBaseClass} appearance-none cursor-pointer`}
-                    >
-                      <option value="" disabled>
-                        Select budget range
-                      </option>
-                      {BUDGET_RANGES.map((range) => (
-                        <option key={range} value={range} className="bg-zinc-900 text-white">
-                          {range}
-                        </option>
-                      ))}
-                    </select>
                   </div>
 
                   {/* Submit CTA */}

@@ -188,7 +188,7 @@ export default function Vault() {
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by title, genre/mood, or BPM..."
             aria-label="Search catalog"
-            className="w-full bg-zinc-900/60 border border-zinc-800 focus:border-green-500/60 focus:ring-2 focus:ring-green-500/20 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-zinc-500 outline-none transition-all backdrop-blur-md"
+            className="w-full bg-zinc-900/60 border border-zinc-800 focus:border-green-500/60 focus:ring-2 focus:ring-green-500/20 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-gray-300 outline-none transition-all backdrop-blur-md"
           />
           {searchQuery && (
             <button
@@ -290,14 +290,12 @@ export default function Vault() {
                 </div>
 
                 {/* BPM — strict WCAG contrast
-                    ⚡ APEX GRACEFUL DEGRADATION: when metadata is absent we render
-                    a subtle PENDING tag instead of broken dashes — honest, styled,
-                    instantly legible to a Tier-1 supervisor scanning for tempo. */}
+                    ⚡ INSTITUTIONAL POLISH: when BPM metadata is absent the label
+                    is removed entirely (never a "PENDING" tag that reads like a
+                    database error). Only the Key is displayed — intentional, clean. */}
                 <div className="hidden md:flex md:col-span-1 flex-col gap-1">
-                  {track.bpm ? (
+                  {track.bpm && (
                     <span className="text-xs text-zinc-300 font-mono">{track.bpm} BPM</span>
-                  ) : (
-                    <span className="opacity-40 font-mono text-xs uppercase tracking-wider text-zinc-400">Pending BPM</span>
                   )}
                   <span className="text-xs text-zinc-300 font-mono">
                     KEY: {track.key ? track.key.toUpperCase() : <span className="opacity-40 text-zinc-400">--</span>}
