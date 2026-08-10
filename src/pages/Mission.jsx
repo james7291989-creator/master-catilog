@@ -66,7 +66,7 @@ export default function Mission() {
             {
               icon: <ShieldCheck className="w-6 h-6" />,
               title: 'Legacy',
-              text: 'A generational wealth engine for Candace, our daughter, and every future Rodney & Sons student.',
+              text: 'Changing the future for our youth by teaching them the proper skills and lifestyle. We are breaking the cycle of the justice system and ensuring they aren\'t raised as statistics for the benefit of a broken system.',
             },
           ].map((pillar, idx) => (
             <motion.div

@@ -60,9 +60,9 @@ html::-webkit-scrollbar {
    background image inhales/exhales without layout thrash.
    ============================================================ */
 @keyframes cinematic-breathe {
-  0% { transform: scale(1); opacity: 0.3; }
-  50% { transform: scale(1.05); opacity: 0.5; }
-  100% { transform: scale(1); opacity: 0.3; }
+  0% { transform: scale(1); opacity: 0.2; }
+  50% { transform: scale(1.15); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 0.2; }
 }
 
 .animate-breathe {

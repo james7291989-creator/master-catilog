@@ -60,6 +60,28 @@ export default function Vault() {
   // (utils/resolveAudioUrl.js) so `.mp3` is appended when missing and spaces
   // are URL-encoded. The vault can never drift into a dead path again.
 
+  // 2.6 ⚡ V15 QA STRIKE: FORCED BLOB DOWNLOAD INJECTION — bypasses CORS by
+  // fetching the file as a Blob, creating an object URL, then triggering an
+  // anchor click with a proper `.mp3` filename. Falls back to opening the URL
+  // in a new tab if a CORS block occurs — never crashes the vault.
+  const handleDownload = async (url, title) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = `${title} - Apex Temp.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      console.error("Download failed:", error);
+      window.open(url, '_blank'); // Fallback
+    }
+  };
+
   // 3. BULLETPROOF AUDIO BINDING
   async function handlePlayClick(track) {
     setAudioError(null);
@@ -306,33 +328,27 @@ export default function Vault() {
                 <div className="col-span-12 md:col-span-3">
                   <div className="flex items-center justify-end gap-3 w-full pr-2">
                     {/* [ACTION A: ASSET ACQUISITION] — Temp MP3 (Secondary) */}
-                    {/* ⚡ FORTRESS PROTOCOL: downloads are gated behind the same
-                        signed-URL pipeline. The anchor is disabled until a fresh
-                        signed URL is resolved, preventing permanent-link scraping. */}
-                    <a
-                        href="#"
-                        onClick={async (e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
+                    {/* ⚡ V15 QA STRIKE: FORCED BLOB DOWNLOAD — the Blob pipeline
+                        bypasses CORS by fetching the file as a Blob, creating an
+                        object URL, and triggering the download with a proper .mp3
+                        extension. Falls back to opening in a new tab on failure. */}
+                    <button
+                        onClick={async () => {
                             const url = await resolveTrackAudioUrl(track);
                             if (url) {
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `${sanitizeFilename(track.title)}_Temp_Master.mp3`;
-                                document.body.appendChild(a);
-                                a.click();
-                                a.remove();
+                                await handleDownload(url, sanitizeFilename(track.title));
                             } else {
                                 setAudioError('DOWNLOAD UNAVAILABLE: SIGNED URL FAILED');
                             }
                         }}
+                        aria-label="Download Temp MP3"
                         className="flex items-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800 hover:border-zinc-600 px-4 py-2.5 text-xs font-bold tracking-wider transition-all duration-200 cursor-pointer"
                     >
                         Temp MP3
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                    </a>
+                    </button>
                     {/* [ACTION B: LICENSE PROTOCOL] — License Track (Primary) */}
                     <button
                       onClick={() => { setLicenseTrack(track); hapticClick(); }}

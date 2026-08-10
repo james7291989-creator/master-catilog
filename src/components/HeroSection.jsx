@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { getCatalogAll } from '../services/catalogService';
 
 export default function HeroSection() {
@@ -27,13 +27,14 @@ export default function HeroSection() {
     document.getElementById('vault')?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // ⚡ APEX CTO OVERRIDE: ZERO DEAD LINKS — every nav item carries a live href.
-  // Mission -> the mission page; Contact -> the admin inbox via mailto.
+  // ⚡ APEX CTO OVERRIDE: ZERO DEAD LINKS — every nav item carries a live destination.
+  // ⚡ V15 QA STRIKE: Mission uses React Router <Link> (never a raw <a>) so the
+  // SPA never hard-reloads — the global PlayerBar keeps playing across routes.
   const NAV_ITEMS = [
     { label: 'Vault', href: '#vault', onClick: () => { setActiveNav('Vault'); scrollToVault(); } },
     { label: 'Software Dev', href: '#vault', onClick: () => { setActiveNav('Software Dev'); scrollToVault(); } },
-    { label: 'Mission', href: '/mission', onClick: () => setActiveNav('Mission') },
-    { label: 'Contact', href: 'mailto:james72919879@gmail.com', onClick: () => setActiveNav('Contact') },
+    { label: 'Mission', to: '/mission', onClick: () => setActiveNav('Mission') },
+    { label: 'Contact', href: 'mailto:rodneyandsonsfoundation@gmail.com', onClick: () => setActiveNav('Contact') },
   ];
 
   // ⚡ INSTITUTIONAL POLISH: sync active nav state with the current route
@@ -64,25 +65,37 @@ export default function HeroSection() {
           RodneyA
         </p>
         <ul className="hidden md:flex items-center space-x-8 text-sm font-medium text-zinc-500">
-          {NAV_ITEMS.map(({ label, href, onClick }) => {
+          {NAV_ITEMS.map(({ label, href, to, onClick }) => {
             const isActive = activeNav === label;
-            return (
-              <li key={label}>
-                <a
-                  href={href}
-                  onClick={onClick}
-                  aria-label={label}
-                  aria-current={isActive ? 'page' : undefined}
-                  className={`transition-colors pb-1 ${
-                    isActive
-                      ? 'text-emerald-400 border-b border-emerald-400'
-                      : 'hover:text-white'
-                  }`}
-                >
-                  {label}
-                </a>
-              </li>
+            const linkClass = `transition-colors pb-1 ${
+              isActive
+                ? 'text-emerald-400 border-b border-emerald-400'
+                : 'hover:text-white'
+            }`;
+            // ⚡ V15 QA STRIKE: internal routes must render as React Router <Link>
+            // to preserve the SPA shell and keep audio streaming between views.
+            const content = to ? (
+              <Link
+                to={to}
+                onClick={onClick}
+                aria-label={label}
+                aria-current={isActive ? 'page' : undefined}
+                className={linkClass}
+              >
+                {label}
+              </Link>
+            ) : (
+              <a
+                href={href}
+                onClick={onClick}
+                aria-label={label}
+                aria-current={isActive ? 'page' : undefined}
+                className={linkClass}
+              >
+                {label}
+              </a>
             );
+            return <li key={label}>{content}</li>;
           })}
         </ul>
         <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-zinc-400">
