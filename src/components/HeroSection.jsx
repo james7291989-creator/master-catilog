@@ -34,7 +34,17 @@ export default function HeroSection() {
     { label: 'Vault', href: '#vault', onClick: () => { setActiveNav('Vault'); scrollToVault(); } },
     { label: 'Software Dev', href: '#vault', onClick: () => { setActiveNav('Software Dev'); scrollToVault(); } },
     { label: 'Mission', to: '/mission', onClick: () => setActiveNav('Mission') },
-    { label: 'Contact', href: 'mailto:rodneyandsonsfoundation@gmail.com', onClick: () => setActiveNav('Contact') },
+    {
+      label: 'Contact',
+      href: '#',
+      onClick: (e) => {
+        if (e) e.preventDefault();
+        setActiveNav('Contact');
+        navigator.clipboard.writeText('rodneyandsonsfoundation@gmail.com');
+        window.location.href = 'mailto:rodneyandsonsfoundation@gmail.com';
+        alert('Contact Email: rodneyandsonsfoundation@gmail.com\n\n(Copied to your clipboard!)');
+      }
+    },
   ];
 
   // ⚡ INSTITUTIONAL POLISH: sync active nav state with the current route
@@ -87,7 +97,10 @@ export default function HeroSection() {
             ) : (
               <a
                 href={href}
-                onClick={onClick}
+                onClick={(e) => {
+                  if (href === '#') e.preventDefault();
+                  if (onClick) onClick(e);
+                }}
                 aria-label={label}
                 aria-current={isActive ? 'page' : undefined}
                 className={linkClass}
