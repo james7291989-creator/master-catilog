@@ -5,7 +5,20 @@ import { getCatalogAll } from '../services/catalogService';
 export default function HeroSection() {
   const [catalogCount, setCatalogCount] = useState(0);
   const [activeNav, setActiveNav] = useState('Vault');
+  // ⚡ V24 RESPONSIVE HERO: mobile paints the ultra-light 32KB variant instantly;
+  // desktop/tablet upgrades to full-res hero-bg.webp. Filters are baked in.
+  const [isDesktop, setIsDesktop] = useState(false);
   const location = useLocation();
+
+  // ⚡ V24 MEDIA QUERY DRIVER: react to viewport width changes so the correct
+  // background asset is always served without runtime filter cost.
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const apply = () => setIsDesktop(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
 
   // ⚡ DYNAMIC DATA HYDRAULICS: the Broadcast Masters counter is bound directly
   // to the live Supabase sync_catalog payload length — zero hardcoded metrics,
@@ -57,11 +70,19 @@ export default function HeroSection() {
 
   return (
     <>
-      {/* Background layers — hero-bg.webp + dark overlay for readability */}
+      {/* Background layers — hero-bg.webp + dark overlay for readability
+          ⚡ V24 OPTIMIZATION: ultra-light hero-bg-mobile.webp (32KB) is served
+          on mobile for INSTANT 4G rendering; desktop/tablet (>=768px) upgrades
+          to full-res hero-bg.webp. The grayscale/contrast/brightness filters
+          are baked into the pixels — zero runtime filter cost. */}
       <div className="fixed inset-0 -z-10 w-full h-screen">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/hero-bg.webp')" }}
+          style={{
+            backgroundImage: isDesktop
+              ? "url('/hero-bg.webp')"
+              : "url('/hero-bg-mobile.webp')",
+          }}
         />
         <div className="absolute inset-0 bg-black/70" />
         <div className="absolute inset-0 bg-gradient-to-r from-black/95 via-black/70 to-transparent" />

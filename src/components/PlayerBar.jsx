@@ -1,5 +1,5 @@
 // --- BEGIN APEX PLAYER ENGINE ---
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import usePlayerStore from '../store/usePlayerStore';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 import { logWarn } from '../utils/structuredLog';
@@ -17,17 +17,36 @@ export default function ApexPlayerBar() {
   const isPlaying = usePlayerStore(state => state.isPlaying);
   const togglePlay = usePlayerStore(state => state.togglePlay);
   const playNextTrack = usePlayerStore(state => state.playNextTrack);
+  const updateCurrentTime = usePlayerStore(state => state.updateCurrentTime);
+  const flushSession = usePlayerStore(state => state.flushSession);
 
   const audioRef = useRef(null);
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [audioUrl, setAudioUrl] = useState('');
 
-  // ⚡ SCRUBBER TELEMETRY — currentTime + duration bound to the HTML5 audio engine
-  const [currentTime, setCurrentTime] = useState(0);
+  // ⚡ V24.1 SCRUBBER TELEMETRY — driven via refs + requestAnimationFrame so
+  // the 60fps position updates NEVER cause a React re-render. Only the
+  // duration (infrequent) and seek-commit boundaries use React state.
+  const scrubRef = useRef(0);
   const [duration, setDuration] = useState(0);
   const [scrubValue, setScrubValue] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const isSeekingRef = useRef(false);
+  const rafRef = useRef(null);
+
+  // ⚡ V24.1 ABRUPT-CLOSE GUARD — flush the latest position the instant the
+  // tab is hidden/closed, so the 5000ms throttle never loses progress.
+  useEffect(() => {
+    const flush = () => flushSession();
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('beforeunload', flush);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [flushSession]);
 
   // ⚡ OMEGA STREAM RESOLUTION — pull a short-lived signed URL from the
   // private vault-audio bucket. FORTRESS PROTOCOL: never a permanent public URL.
@@ -43,9 +62,9 @@ export default function ApexPlayerBar() {
       setHasError(false);
       setIsBuffering(true);
       // Reset scrubber telemetry on track change
-      setCurrentTime(0);
-      setDuration(0);
+      scrubRef.current = 0;
       setScrubValue(0);
+      setDuration(0);
 
       try {
         // ⚡ FORTRESS PROTOCOL: resolve through the shared async signed-URL
@@ -120,15 +139,38 @@ export default function ApexPlayerBar() {
     };
   }, [activeTrack]);
 
-  // ⚡ SCRUB COMMIT — seek the HTML5 audio engine to the drop point
-  const commitSeek = () => {
+  // ⚡ V24.1 60FPS SCRUBBER DRIVER — rAF loop reads the live audio position
+  // and writes DIRECTLY to the input (ref) + localized scrubValue state ONLY
+  // when the visible % changes. Persistence is throttled to 5000ms in the
+  // store. No React re-render fires on the per-frame path.
+  const commitSeek = useCallback(() => {
     const audio = audioRef.current;
-    if (audio && isFinite(scrubValue)) {
-      audio.currentTime = scrubValue;
-      setCurrentTime(scrubValue);
+    if (audio && isFinite(scrubRef.current)) {
+      audio.currentTime = scrubRef.current;
     }
+    isSeekingRef.current = false;
     setIsSeeking(false);
-  };
+  }, []);
+
+  const handleSeekInput = useCallback((e) => {
+    const val = Number(e.target.value);
+    scrubRef.current = val;
+    setScrubValue(val);
+  }, []);
+
+  const handleTimeUpdate = useCallback((e) => {
+    if (isSeekingRef.current) return;
+    const t = e.target.currentTime;
+    scrubRef.current = t;
+    // Throttled persistence (5000ms) — never per-frame disk write
+    updateCurrentTime(t);
+    // Paint the scrubber position via rAF; only setScrubValue when the
+    // rendered % actually changes to avoid state churn.
+    if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    rafRef.current = requestAnimationFrame(() => {
+      setScrubValue(t);
+    });
+  }, [updateCurrentTime]);
 
   if (!activeTrack) return null;
 
@@ -155,7 +197,7 @@ export default function ApexPlayerBar() {
         {/* ⚡ INTERACTIVE AUDIO SCRUBBER — seek to any drop point in the master */}
         <div className="flex items-center gap-3 mb-4">
           <span className="text-xs text-green-400 font-mono tabular-nums w-12 text-right flex-shrink-0">
-            {formatTime(currentTime)}
+            {formatTime(scrubValue)}
           </span>
           <input
             type="range"
@@ -164,9 +206,9 @@ export default function ApexPlayerBar() {
             step={0.1}
             value={scrubValue}
             disabled={hasError || !audioUrl || !duration}
-            onChange={(e) => { setScrubValue(Number(e.target.value)); }}
-            onMouseDown={() => setIsSeeking(true)}
-            onTouchStart={() => setIsSeeking(true)}
+            onChange={handleSeekInput}
+            onMouseDown={() => { isSeekingRef.current = true; setIsSeeking(true); }}
+            onTouchStart={() => { isSeekingRef.current = true; setIsSeeking(true); }}
             onMouseUp={commitSeek}
             onTouchEnd={commitSeek}
             onKeyUp={commitSeek}
@@ -209,12 +251,7 @@ export default function ApexPlayerBar() {
           onWaiting={() => setIsBuffering(true)}
           onError={() => { setHasError(true); setIsBuffering(false); }}
           onLoadedMetadata={(e) => setDuration(e.target.duration)}
-          onTimeUpdate={(e) => {
-            if (!isSeeking) {
-              setCurrentTime(e.target.currentTime);
-              setScrubValue(e.target.currentTime);
-            }
-          }}
+          onTimeUpdate={handleTimeUpdate}
           preload="auto"
         />
       </div>

@@ -9,13 +9,11 @@ import { ArrowLeft, HeartHandshake, GraduationCap, Building2, ShieldCheck } from
 export default function Mission() {
   return (
     <div className="min-h-screen bg-black text-white font-body overflow-x-hidden">
-      {/* BACKGROUND — grayscale cinematic overlay */}
+      {/* BACKGROUND — grayscale cinematic overlay.
+          ⚡ V24 OPTIMIZATION: Filters baked into /bg.jpg pixels — zero runtime filter. */}
       <div
         className="fixed inset-0 z-[-2] bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: "url('/bg.jpg')",
-          filter: 'grayscale(100%) contrast(120%) brightness(30%)',
-        }}
+        style={{ backgroundImage: "url('/bg.jpg')" }}
       />
 
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-16">
