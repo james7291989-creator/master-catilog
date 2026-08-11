@@ -178,7 +178,11 @@ export default function Vault() {
         <div className="mb-8 flex justify-between items-center pb-4">
           <div>
             <h2 className="text-3xl font-bold tracking-tight text-white">The Vault</h2>
-            <p className="text-zinc-400 text-sm mt-1">Tier-1 Music Supervisor Sync Catalog — {tracks.length} Master Recordings</p>
+            <p className="text-sm text-zinc-400 mt-2 tracking-wide max-w-2xl">
+              Tier-1 Music Supervisor Sync Catalog — 20 Master Recordings. 
+              <br className="hidden md:block"/>
+              100% Independent One-Stop Clearance. <span className="text-emerald-400 font-bold ml-1">BMI IPI: 551288873</span>
+            </p>
           </div>
           <div className="flex items-center gap-3">
             <button

@@ -15,6 +15,10 @@ export default function FounderModal({ isOpen, onClose }) {
           THE ARCHITECT'S STORY
         </div>
 
+        <div className="mb-4 ml-3 inline-block bg-zinc-800 text-zinc-300 px-3 py-1 rounded-full text-xs font-bold tracking-widest border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+          BMI IPI: 551288873
+        </div>
+
         <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter mb-6">
           JAMES RODNEY ARMS JR.
         </h2>
