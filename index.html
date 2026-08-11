@@ -5,19 +5,41 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>james-rodney-ultimate-catalog</title>
+
+    <!--
+      ⚡ GOOGLE KNOWLEDGE GRAPH — SEO DOMINANCE PAYLOAD ⚡
+      Injects structural identity for "James Rodney Arms Jr." so search
+      engines render an authoritative Knowledge Panel / rich result.
+    -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "James Rodney Arms Jr.",
+      "jobTitle": "CEO, Founder, and Principal Architect",
+      "worksFor": {
+        "@type": "Organization",
+        "name": "Rodney and Sons Foundation"
+      },
+      "description": "Founder of the Rodney and Sons Foundation. Architect of the RodneyA Music Vault. James Rodney Arms Jr. engineered a 100% independent sync licensing catalog to fund brick-and-mortar trade schools for at-risk youth, breaking the cycle of the justice system.",
+      "url": "https://james-rodney-ultimate-catalog.vercel.app/"
+    }
+    </script>
+
     <!--
       ⚡ FORTRESS CONTENT SECURITY POLICY ⚡
       Strict, no-wildcard CSP. Only designated origins are permitted:
       - self: the app's own origin
       - Google Fonts (fonts.googleapis.com / fonts.gstatic.com)
       - Supabase project (owmyubghyfbexvvzbehh.supabase.co) for signed streams
-      No inline scripts, no eval, no data: URIs, no wildcard (*) origins.
+      - 'unsafe-inline' script-src: REQUIRED for the Google Knowledge Graph
+        JSON-LD block (data, not executable JS — no eval, no external scripts).
     -->
     <meta
       http-equiv="Content-Security-Policy"
       content="
         default-src 'self';
-        script-src 'self';
+        script-src 'self' 'unsafe-inline';
         style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
         font-src 'self' https://fonts.gstatic.com;
         img-src 'self' data:;

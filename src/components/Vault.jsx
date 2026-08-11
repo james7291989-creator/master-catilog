@@ -4,6 +4,7 @@ import { Play, Pause, Disc } from 'lucide-react';
 import usePlayerStore from '../store/usePlayerStore';
 import LicenseModal from './LicenseModal';
 import TestimonyVault from './TestimonyVault';
+import FounderModal from './FounderModal';
 import hapticClick from '../utils/vibrate';
 import sanitizeFilename from '../utils/sanitizeFilename';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
@@ -21,6 +22,7 @@ export default function Vault() {
   const [loading, setLoading] = useState(true);
   const [licenseTrack, setLicenseTrack] = useState(null);
   const [isTestimonyVaultBreached, setIsTestimonyVaultBreached] = useState(false);
+  const [founderModalOpen, setFounderModalOpen] = useState(false);
   const [audioError, setAudioError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -179,6 +181,12 @@ export default function Vault() {
             <p className="text-zinc-400 text-sm mt-1">Tier-1 Music Supervisor Sync Catalog — {tracks.length} Master Recordings</p>
           </div>
           <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setFounderModalOpen(true); hapticClick(); }}
+              className="text-[10px] tracking-[0.2em] text-zinc-300 hover:text-emerald-400 uppercase transition-colors"
+            >
+              Read the Founder's Story
+            </button>
             <button
               onClick={() => { setIsTestimonyVaultBreached(true); hapticClick(); }}
               className="text-[10px] tracking-[0.2em] text-zinc-400 hover:text-white uppercase transition-colors"
@@ -372,6 +380,10 @@ export default function Vault() {
       <TestimonyVault
         isBreached={isTestimonyVaultBreached}
         onClose={() => setIsTestimonyVaultBreached(false)}
+      />
+      <FounderModal
+        isOpen={founderModalOpen}
+        onClose={() => setFounderModalOpen(false)}
       />
     </div>
   );
