@@ -71,10 +71,11 @@ export default function HeroSection() {
   return (
     <>
       {/* Background layers — hero-bg.webp + dark overlay for readability
-          ⚡ V24 OPTIMIZATION: ultra-light hero-bg-mobile.webp (32KB) is served
-          on mobile for INSTANT 4G rendering; desktop/tablet (>=768px) upgrades
-          to full-res hero-bg.webp. The grayscale/contrast/brightness filters
-          are baked into the pixels — zero runtime filter cost. */}
+          ⚡ V25 COLOR RESTORATION: full color restored to all hero assets.
+          ultra-light hero-bg-mobile.webp is served on mobile for INSTANT 4G
+          rendering; desktop/tablet (>=768px) upgrades to full-res hero-bg.webp.
+          The dark overlay stack (bg-black/70 + gradients) guarantees the white
+          and emerald text stays readable over the restored color. */}
       <div className="fixed inset-0 -z-10 w-full h-screen">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"

@@ -4,7 +4,9 @@ from PIL import Image, ImageEnhance, ImageOps
 PUBLIC = os.path.join(os.path.dirname(__file__), '..', 'public')
 
 def bake(img):
-    img = ImageOps.grayscale(img).convert('RGB')
+    # ⚡ V25 COLOR RESTORATION: removed ImageOps.grayscale() — color is NEVER
+    # stripped from the hero assets. Contrast/brightness remain for readability,
+    # and the CSS overlay handles text contrast.
     img = ImageEnhance.Contrast(img).enhance(1.2)
     img = ImageEnhance.Brightness(img).enhance(0.4)
     return img
