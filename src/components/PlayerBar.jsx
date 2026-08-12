@@ -118,6 +118,10 @@ export default function ApexPlayerBar() {
               logWarn('player.playback_intercepted', {
                 track: activeTrack?.id ?? activeTrack?.track_title ?? 'unknown',
               });
+              // ⚡ V26 FIX: ALWAYS release the buffering lock on play rejection.
+              // The previous code left `isBuffering` stuck at `true` forever,
+              // trapping the UI in an infinite "LOADING..." state.
+              setIsBuffering(false);
               togglePlay();
             });
         }
@@ -247,7 +251,10 @@ export default function ApexPlayerBar() {
           controlsList="nodownload noplaybackrate"
           disableRemotePlayback
           onEnded={playNextTrack}
+          onLoadStart={() => setIsBuffering(true)}
           onPlaying={() => setIsBuffering(false)}
+          onCanPlay={() => setIsBuffering(false)}
+          onLoadedData={() => setIsBuffering(false)}
           onWaiting={() => setIsBuffering(true)}
           onError={() => { setHasError(true); setIsBuffering(false); }}
           onLoadedMetadata={(e) => setDuration(e.target.duration)}

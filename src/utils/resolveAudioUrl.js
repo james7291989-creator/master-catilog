@@ -58,6 +58,29 @@ export function isSafeStorageKey(filename) {
 }
 
 /**
+ * ⚡ V26 LOCAL STREAM FALLBACK — maps a track's file_name to the local
+ * `/audio/` directory (public/audio). The streaming MP3s are named
+ * `<base>_Stream.mp3` (e.g. `Baby You There_.wav` → `Baby You There__Stream.mp3`).
+ * This guarantees playback even when the Supabase bucket is unreachable.
+ */
+function buildLocalAudioPath(track) {
+  const rawName = track?.file_name || track?.storage_path || track?.track_title;
+  if (typeof rawName !== 'string' || rawName.length === 0) return null;
+
+  // Strip extension, then append the streaming suffix.
+  const base = rawName.replace(/\.[^.]+$/, '');
+  if (!base) return null;
+
+  // URL-encode each path segment so spaces/unicode survive the browser.
+  const encoded = base
+    .split('/')
+    .map((seg) => encodeURIComponent(seg))
+    .join('/');
+
+  return `/audio/${encoded}_Stream.mp3`;
+}
+
+/**
  * Resolves a track to a short-lived, signed, in-vault audio URL.
  *
  * Graceful-fallback contract:
@@ -92,10 +115,22 @@ export async function resolveTrackAudioUrl(track) {
 
       if (error) {
         logError('stream.resolve.sign_error', { track: trackRef(track), message: error.message });
+        // ⚡ V26 FALLBACK: Supabase unreachable — serve the local streaming MP3.
+        const localPath = buildLocalAudioPath(track);
+        if (localPath) {
+          logWarn('stream.resolve.local_fallback', { track: trackRef(track) });
+          return localPath;
+        }
         return null;
       }
       if (!data?.signedUrl) {
         logError('stream.resolve.empty_signed_url', { track: trackRef(track) });
+        // ⚡ V26 FALLBACK: empty signed URL — serve the local streaming MP3.
+        const localPath = buildLocalAudioPath(track);
+        if (localPath) {
+          logWarn('stream.resolve.local_fallback', { track: trackRef(track) });
+          return localPath;
+        }
         return null;
       }
       return data.signedUrl;
@@ -104,6 +139,12 @@ export async function resolveTrackAudioUrl(track) {
         track: trackRef(track),
         message: err?.message ?? 'unknown error',
       });
+      // ⚡ V26 FALLBACK: exception — serve the local streaming MP3.
+      const localPath = buildLocalAudioPath(track);
+      if (localPath) {
+        logWarn('stream.resolve.local_fallback', { track: trackRef(track) });
+        return localPath;
+      }
       return null;
     }
   }
@@ -114,6 +155,13 @@ export async function resolveTrackAudioUrl(track) {
   if (typeof legacyPath === 'string' && legacyPath.startsWith('/secure_assets/')) {
     logWarn('stream.resolve.legacy_fallback', { track: trackRef(track) });
     return legacyPath;
+  }
+
+  // 3. ⚡ V26 FINAL FALLBACK: local streaming MP3 in public/audio.
+  const localPath = buildLocalAudioPath(track);
+  if (localPath) {
+    logWarn('stream.resolve.local_fallback', { track: trackRef(track) });
+    return localPath;
   }
 
   logWarn('stream.resolve.no_source', { track: trackRef(track) });
