@@ -1,9 +1,14 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, X } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 
-// ⚡ PHASE 5: LEAD CAPTURE ENGINE — mailto action target
-// Live licensing inbox — every intake request lands here pre-filled.
+// ⚡ VITE DATABASE HYDRAULICS
+// Vite strictly requires the VITE_ prefix. We initialize safely to prevent white-screens.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
 const LICENSING_EMAIL = 'rodneyandsonsfoundation@gmail.com';
 
 const inputBaseClass =
@@ -20,27 +25,32 @@ export default function LicenseModal({ track, onClose }) {
         .trim()
     : 'Untitled Track';
 
-  // ⚡ LEAD CAPTURE FORM STATE — Name, Production Company, Intended Media Use
   const [formData, setFormData] = useState({
     name: '',
     company: '',
     mediaUse: '',
   });
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // =============================================================================
-  // ⚡ ACTION ENGINE — compile the form into a URL-encoded mailto: string and
-  // fire the user's default mail client, then close the modal. No backend required.
-  // =============================================================================
-  const handleSubmit = (e) => {
+  // ⚡ DUAL-VECTOR ACTION ENGINE
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const subject = `Sync Licensing Request: ${trackTitle}`;
+    if (!formData.name || !formData.company || !formData.mediaUse) {
+      alert("SYSTEM HALT: All fields are required.");
+      return;
+    }
 
+    setIsSubmitting(true);
+
+    const subject = `Sync Licensing Request: ${trackTitle}`;
     const body = [
       'SYNC LICENSING REQUEST',
       '=======================',
@@ -53,13 +63,40 @@ export default function LicenseModal({ track, onClose }) {
       '— Sent from The Vault',
     ].join('\n');
 
-    const mailto = `mailto:${LICENSING_EMAIL}?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
+    const mailto = `mailto:${LICENSING_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-    // ⚡ Open the user's default mail client instantly, then close the modal
-    window.location.href = mailto;
-    onClose();
+    // Fallback if Vercel is missing VITE_ variables
+    if (!supabase) {
+      console.warn("VITE_SUPABASE_URL missing. Executing Mail fallback.");
+      window.location.href = mailto;
+      setIsSubmitting(false);
+      onClose();
+      return;
+    }
+
+    // Vector Alpha: Database Injection
+    const { error } = await supabase.from('sync_leads').insert([
+      {
+        track_title: trackTitle,
+        full_name: formData.name,
+        production_company: formData.company,
+        intended_use: formData.mediaUse
+      }
+    ]);
+
+    setIsSubmitting(false);
+
+    if (error) {
+      console.error("Database Write Exception:", error.message);
+      alert(`FATAL DATABASE ERROR: ${error.message}`);
+    } else {
+      // Vector Beta: Success State & Email Routing
+      setSubmitSuccess(true);
+      window.location.href = mailto; 
+      setTimeout(() => {
+        onClose();
+      }, 3500);
+    }
   };
 
   return (
@@ -81,11 +118,9 @@ export default function LicenseModal({ track, onClose }) {
             onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-lg"
           >
-            {/* Main Card — glass-morphic intake form */}
             <div className="relative bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden">
-              {/* Content */}
               <div className="p-8 space-y-6">
-                {/* Header */}
+                
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-zinc-900 border border-zinc-800">
@@ -107,7 +142,6 @@ export default function LicenseModal({ track, onClose }) {
                   </div>
                 </div>
 
-                {/* Track Title Display */}
                 <div className="bg-black/60 border border-zinc-900 px-5 py-4">
                   <p className="text-[10px] font-mono tracking-widest text-zinc-600 uppercase mb-1">
                     Selected Master
@@ -117,68 +151,81 @@ export default function LicenseModal({ track, onClose }) {
                   </p>
                 </div>
 
-                {/* Inline Form */}
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className={labelClass}>Name</label>
-                    <input
-                      type="text"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                      placeholder="Your full name"
-                      className={inputBaseClass}
-                    />
+                {submitSuccess ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-6 text-center animate-pulse">
+                    <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                    </div>
+                    <h4 className="text-emerald-400 font-bold mb-2">Request Secured</h4>
+                    <p className="text-zinc-400 text-sm">Your licensing inquiry has been encrypted into the ledger. The mail client is opening.</p>
                   </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className={labelClass}>Name</label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        required
+                        placeholder="Your full name"
+                        className={inputBaseClass}
+                      />
+                    </div>
 
-                  <div>
-                    <label className={labelClass}>Production Company</label>
-                    <input
-                      type="text"
-                      name="company"
-                      value={formData.company}
-                      onChange={handleChange}
-                      required
-                      placeholder="Company or studio name"
-                      className={inputBaseClass}
-                    />
-                  </div>
+                    <div>
+                      <label className={labelClass}>Production Company</label>
+                      <input
+                        type="text"
+                        name="company"
+                        value={formData.company}
+                        onChange={handleChange}
+                        required
+                        placeholder="Company or studio name"
+                        className={inputBaseClass}
+                      />
+                    </div>
 
-                  <div>
-                    <label className={labelClass}>Intended Media Use</label>
-                    <textarea
-                      name="mediaUse"
-                      value={formData.mediaUse}
-                      onChange={handleChange}
-                      required
-                      rows={3}
-                      placeholder="Film, series, ad campaign, video game — describe the intended use"
-                      className={`${inputBaseClass} resize-none`}
-                    />
-                  </div>
+                    <div>
+                      <label className={labelClass}>Intended Media Use</label>
+                      <textarea
+                        name="mediaUse"
+                        value={formData.mediaUse}
+                        onChange={handleChange}
+                        required
+                        rows={3}
+                        placeholder="Film, series, ad campaign, video game — describe the intended use"
+                        className={`${inputBaseClass} resize-none`}
+                      />
+                    </div>
 
-                  {/* Submit CTA */}
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      className="group w-full flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 text-sm tracking-wider transition-all duration-200 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] cursor-pointer"
-                    >
-                      <Mail size={16} />
-                      SEND LICENSING REQUEST
-                    </button>
-                  </div>
-                </form>
+                    <div className="pt-2">
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="group w-full flex items-center justify-center gap-3 bg-emerald-600 hover:bg-emerald-500 text-white font-black py-3.5 text-sm tracking-wider transition-all duration-200 shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isSubmitting ? (
+                          <span className="animate-pulse">TRANSMITTING...</span>
+                        ) : (
+                          <>
+                            <Mail size={16} />
+                            SEND LICENSING REQUEST
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                )}
 
-                {/* Footer */}
                 <div className="pt-2 border-t border-zinc-900">
                   <p className="text-[10px] font-mono tracking-wider text-zinc-700 text-center">
-                    Opens your default mail client. All masters are 100% One-Stop / Pre-Cleared.
+                    All masters are 100% One-Stop / Pre-Cleared.
                   </p>
                 </div>
               </div>
 
-              {/* Close Button */}
               <button
                 onClick={onClose}
                 className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 transition-all text-xs"
