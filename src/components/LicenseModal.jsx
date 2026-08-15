@@ -1,13 +1,6 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, X } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-// ⚡ VITE DATABASE HYDRAULICS
-// Vite strictly requires the VITE_ prefix. We initialize safely to prevent white-screens.
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 const LICENSING_EMAIL = 'rodneyandsonsfoundation@gmail.com';
 
@@ -41,7 +34,7 @@ export default function LicenseModal({ track, onClose }) {
 
   // ⚡ DUAL-VECTOR ACTION ENGINE
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // ⚡ FATAL DOM LOOP KILLER
 
     if (!formData.name || !formData.company || !formData.mediaUse) {
       alert("SYSTEM HALT: All fields are required.");
@@ -51,28 +44,23 @@ export default function LicenseModal({ track, onClose }) {
     setIsSubmitting(true);
 
     const subject = `Sync Licensing Request: ${trackTitle}`;
-    const body = [
-      'SYNC LICENSING REQUEST',
-      '=======================',
-      '',
-      `Track: ${trackTitle}`,
-      `Name: ${formData.name}`,
-      `Production Company: ${formData.company}`,
-      `Intended Media Use: ${formData.mediaUse}`,
-      '',
-      '— Sent from The Vault',
-    ].join('\n');
+    const body = `SYNC LICENSING REQUEST\n=======================\n\nTrack: ${trackTitle}\nName: ${formData.name}\nProduction Company: ${formData.company}\nIntended Media Use: ${formData.mediaUse}\n\n— Sent from The Vault`;
+    const mailtoLink = `mailto:${LICENSING_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
-    const mailto = `mailto:${LICENSING_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    // Initialize Supabase Safely for Vite
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
-    // Fallback if Vercel is missing VITE_ variables
-    if (!supabase) {
-      console.warn("VITE_SUPABASE_URL missing. Executing Mail fallback.");
-      window.location.href = mailto;
+    if (!supabaseUrl || !supabaseKey) {
+      console.warn("VITE SUPABASE ENVS MISSING. TRIGGERING VECTOR BETA FALLBACK.");
+      window.location.href = mailtoLink;
       setIsSubmitting(false);
       onClose();
       return;
     }
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Vector Alpha: Database Injection
     const { error } = await supabase.from('sync_leads').insert([
@@ -89,13 +77,13 @@ export default function LicenseModal({ track, onClose }) {
     if (error) {
       console.error("Database Write Exception:", error.message);
       alert(`FATAL DATABASE ERROR: ${error.message}`);
+      // Force Fallback even on DB failure
+      window.location.href = mailtoLink;
     } else {
-      // Vector Beta: Success State & Email Routing
+      // Vector Beta: Success & Mailto execution
       setSubmitSuccess(true);
-      window.location.href = mailto; 
-      setTimeout(() => {
-        onClose();
-      }, 3500);
+      window.location.href = mailtoLink;
+      setTimeout(() => onClose(), 3500);
     }
   };
 
