@@ -363,6 +363,7 @@ export default function Vault() {
                     </button>
                     {/* [ACTION B: LICENSE PROTOCOL] — License Track (Primary) */}
                     <button
+                      type="button"
                       onClick={() => { setLicenseTrack(track); hapticClick(); }}
                       aria-label="License Track"
                       className="inline-flex items-center justify-center bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-6 rounded-lg transition-all shadow-[0_0_15px_rgba(16,185,129,0.25)] hover:shadow-[0_0_25px_rgba(16,185,129,0.5)] text-xs whitespace-nowrap focus:ring-2 focus:ring-emerald-400 outline-none"
