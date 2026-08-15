@@ -21,9 +21,13 @@ export default function LicenseModal({ track, onClose }) {
   const [formData, setFormData] = useState({
     name: '',
     company: '',
+    email: '',
+    phone: '',
+    projectType: '',
+    budgetTier: '',
     mediaUse: '',
   });
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
@@ -36,7 +40,14 @@ export default function LicenseModal({ track, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault(); // ⚡ FATAL DOM LOOP KILLER
 
-    if (!formData.name || !formData.company || !formData.mediaUse) {
+    if (
+      !formData.name ||
+      !formData.company ||
+      !formData.email ||
+      !formData.projectType ||
+      !formData.budgetTier ||
+      !formData.mediaUse
+    ) {
       alert("SYSTEM HALT: All fields are required.");
       return;
     }
@@ -44,7 +55,7 @@ export default function LicenseModal({ track, onClose }) {
     setIsSubmitting(true);
 
     const subject = `Sync Licensing Request: ${trackTitle}`;
-    const body = `SYNC LICENSING REQUEST\n=======================\n\nTrack: ${trackTitle}\nName: ${formData.name}\nProduction Company: ${formData.company}\nIntended Media Use: ${formData.mediaUse}\n\n— Sent from The Vault`;
+    const body = `SYNC LICENSING REQUEST\n=======================\n\nTrack: ${trackTitle}\nName: ${formData.name}\nProduction Company: ${formData.company}\nCorporate Email: ${formData.email}\nDirect Phone: ${formData.phone || 'Not provided'}\nProject Type: ${formData.projectType}\nEstimated Budget: ${formData.budgetTier}\nIntended Media Use: ${formData.mediaUse}\n\n— Sent from The Vault`;
     const mailtoLink = `mailto:${LICENSING_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     // Initialize Supabase Safely for Vite
@@ -68,6 +79,10 @@ export default function LicenseModal({ track, onClose }) {
         track_title: trackTitle,
         full_name: formData.name,
         production_company: formData.company,
+        email: formData.email,
+        phone: formData.phone,
+        project_type: formData.projectType,
+        budget_tier: formData.budgetTier,
         intended_use: formData.mediaUse
       }
     ]);
@@ -149,30 +164,97 @@ export default function LicenseModal({ track, onClose }) {
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <label className={labelClass}>Name</label>
-                      <input
-                        type="text"
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        required
-                        placeholder="Your full name"
-                        className={inputBaseClass}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Name</label>
+                        <input
+                          type="text"
+                          name="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          required
+                          placeholder="Your full name"
+                          className={inputBaseClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Production Company</label>
+                        <input
+                          type="text"
+                          name="company"
+                          value={formData.company}
+                          onChange={handleChange}
+                          required
+                          placeholder="Company or studio name"
+                          className={inputBaseClass}
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className={labelClass}>Production Company</label>
-                      <input
-                        type="text"
-                        name="company"
-                        value={formData.company}
-                        onChange={handleChange}
-                        required
-                        placeholder="Company or studio name"
-                        className={inputBaseClass}
-                      />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Corporate Email</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          required
+                          placeholder="you@company.com"
+                          className={inputBaseClass}
+                        />
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Direct Phone</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          placeholder="Optional"
+                          className={inputBaseClass}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className={labelClass}>Project Type</label>
+                        <select
+                          name="projectType"
+                          value={formData.projectType}
+                          onChange={handleChange}
+                          required
+                          className={`${inputBaseClass} bg-black/60 text-white`}
+                        >
+                          <option value="" disabled>Select Project Type</option>
+                          <option value="Theatrical Film">Theatrical Film</option>
+                          <option value="Broadcast Television">Broadcast Television</option>
+                          <option value="Global Commercial / Ad Campaign">Global Commercial / Ad Campaign</option>
+                          <option value="Video Game">Video Game</option>
+                          <option value="Trailer / Promo">Trailer / Promo</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className={labelClass}>Estimated Budget</label>
+                        <select
+                          name="budgetTier"
+                          value={formData.budgetTier}
+                          onChange={handleChange}
+                          required
+                          className={`${inputBaseClass} bg-black/60 text-white`}
+                        >
+                          <option value="" disabled>Select Estimated Budget</option>
+                          <option value="Under $10,000 (Indie/Micro)">Under $10,000 (Indie/Micro)</option>
+                          <option value="$10,000 - $25,000">$10,000 - $25,000</option>
+                          <option value="$25,000 - $50,000">$25,000 - $50,000</option>
+                          <option value="$50,000+">$50,000+</option>
+                        </select>
+                      </div>
                     </div>
 
                     <div>
