@@ -7,6 +7,9 @@ import PlayerBar from './components/PlayerBar';
 // This shreds the monolithic bundle into route-scoped payloads.
 const HomePage = lazy(() => import('./pages/Home'));
 const Mission = lazy(() => import('./pages/Mission'));
+// ⚡ OMEGA ADMIN — Ultimate Ingestion Engine. Lazy-loaded so the admin
+// chunk (passcode gate + ingestion form) never ships with the public vault.
+const OmegaAdmin = lazy(() => import('./pages/OmegaAdmin'));
 
 // ⚡ SLEEK MINIMAL LOADING STATE — never blanks out during chunk fetch.
 function RouteFallback() {
@@ -36,6 +39,8 @@ export default function App() {
               dedicated, isolated catalog page for the selected artist. */}
           <Route path="/vault/:artistId" element={<HomePage />} />
           <Route path="/mission" element={<Mission />} />
+          {/* ⚡ OMEGA ADMIN — passcode-gated ingestion engine. */}
+          <Route path="/omega-admin" element={<OmegaAdmin />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
