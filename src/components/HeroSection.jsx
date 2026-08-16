@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useLocation, Link } from 'react-router-dom';
-import { getCatalogAll } from '../services/catalogService';
+import { useLocation, useParams, useNavigate, Link } from 'react-router-dom';
+import { getCatalogAll, getArtistsLedger } from '../services/catalogService';
 
 export default function HeroSection() {
   const [catalogCount, setCatalogCount] = useState(0);
@@ -9,6 +9,13 @@ export default function HeroSection() {
   // desktop/tablet upgrades to full-res hero-bg.webp. Filters are baked in.
   const [isDesktop, setIsDesktop] = useState(false);
   const location = useLocation();
+  // ⚡ MULTI-TENANT DYNAMIC ROUTING: extract the active artistId from the URL.
+  const { artistId } = useParams();
+  const navigate = useNavigate();
+  // ⚡ MULTI-TENANT ARTISTS LEDGER: the global roster for the dropdown.
+  const [artists, setArtists] = useState([]);
+  // ⚡ MULTI-TENANT ACTIVE ARTIST: the resolved artist record for hero hydration.
+  const [activeArtist, setActiveArtist] = useState(null);
 
   // ⚡ V24 MEDIA QUERY DRIVER: react to viewport width changes so the correct
   // background asset is always served without runtime filter cost.
@@ -20,13 +27,38 @@ export default function HeroSection() {
     return () => mq.removeEventListener('change', apply);
   }, []);
 
+  // ⚡ MULTI-TENANT ARTISTS LEDGER HYDRATION: fetch the full roster on mount
+  // so the global navigation dropdown can render every guest catalog.
+  useEffect(() => {
+    let cancelled = false;
+    getArtistsLedger()
+      .then((rows) => {
+        if (!cancelled) setArtists(Array.isArray(rows) ? rows : []);
+      })
+      .catch(() => {
+        if (!cancelled) setArtists([]);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  // ⚡ MULTI-TENANT ACTIVE ARTIST RESOLUTION: when an artistId is present in
+  // the URL, resolve it against the ledger for hero background + name hydration.
+  useEffect(() => {
+    if (!artistId) {
+      setActiveArtist(null);
+      return;
+    }
+    const match = artists.find((a) => a.id === artistId);
+    setActiveArtist(match || null);
+  }, [artistId, artists]);
+
   // ⚡ DYNAMIC DATA HYDRAULICS: the Broadcast Masters counter is bound directly
   // to the live Supabase sync_catalog payload length — zero hardcoded metrics,
   // zero data distrust. The repository layer caches this for 60s, so the
   // Vault grid and hero stay perfectly in sync on every mount.
   useEffect(() => {
     let cancelled = false;
-    getCatalogAll()
+    getCatalogAll(artistId)
       .then((rows) => {
         if (!cancelled) setCatalogCount(Array.isArray(rows) ? rows.length : 0);
       })
@@ -34,10 +66,20 @@ export default function HeroSection() {
         if (!cancelled) setCatalogCount(0);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [artistId]);
 
   const scrollToVault = () => {
     document.getElementById('vault')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // ⚡ MULTI-TENANT DROPDOWN HANDLER: navigate to the selected guest vault.
+  const handleArtistChange = (e) => {
+    const value = e.target.value;
+    if (!value) {
+      navigate('/');
+      return;
+    }
+    navigate(`/vault/${value}`);
   };
 
   // ⚡ APEX CTO OVERRIDE: ZERO DEAD LINKS — every nav item carries a live destination.
@@ -68,6 +110,15 @@ export default function HeroSection() {
     }
   }, [location.pathname]);
 
+  // ⚡ MULTI-TENANT HERO HYDRATION: resolve the hero background + artist name.
+  // Root route defaults to the master tenant (James Rodney Arms Jr.).
+  const heroBg = activeArtist?.hero_bg_image
+    ? activeArtist.hero_bg_image
+    : isDesktop
+      ? '/hero-bg.webp'
+      : '/hero-bg-mobile.webp';
+  const heroName = activeArtist?.artist_name || 'James Rodney Arms Jr.';
+
   return (
     <>
       {/* Background layers — hero-bg.webp + dark overlay for readability
@@ -75,14 +126,14 @@ export default function HeroSection() {
           ultra-light hero-bg-mobile.webp is served on mobile for INSTANT 4G
           rendering; desktop/tablet (>=768px) upgrades to full-res hero-bg.webp.
           The dark overlay stack (bg-black/70 + gradients) guarantees the white
-          and emerald text stays readable over the restored color. */}
+          and emerald text stays readable over the restored color.
+          ⚡ MULTI-TENANT: when a guest artist is active, their hero_bg_image
+          hydrates the background dynamically. */}
       <div className="fixed inset-0 -z-10 w-full h-screen">
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage: isDesktop
-              ? "url('/hero-bg.webp')"
-              : "url('/hero-bg-mobile.webp')",
+            backgroundImage: `url('${heroBg}')`,
           }}
         />
         <div className="absolute inset-0 bg-black/70" />
@@ -133,8 +184,24 @@ export default function HeroSection() {
             return <li key={label}>{content}</li>;
           })}
         </ul>
-        <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-zinc-400">
-          R
+        <div className="flex items-center gap-3">
+          {/* ⚡ MULTI-TENANT GLOBAL NAVIGATION DROPDOWN — GUEST CATALOGS */}
+          <select
+            value={artistId || ''}
+            onChange={handleArtistChange}
+            aria-label="Guest Catalogs"
+            className="bg-zinc-900/80 border border-zinc-800 text-zinc-300 text-xs font-bold tracking-widest uppercase px-3 py-2 rounded outline-none hover:border-emerald-500/50 focus:border-emerald-500/60 transition-colors cursor-pointer"
+          >
+            <option value="">Master Vault</option>
+            {artists.map((artist) => (
+              <option key={artist.id} value={artist.id}>
+                {artist.artist_name} Vault
+              </option>
+            ))}
+          </select>
+          <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-zinc-400">
+            R
+          </div>
         </div>
       </nav>
 
@@ -147,9 +214,10 @@ export default function HeroSection() {
               Premium Sync-Ready Master Recordings for Film & Television
             </h1>
 
-            {/* ARTIST NAME — H2: highly styled, emerald accent */}
+            {/* ARTIST NAME — H2: highly styled, emerald accent
+                ⚡ MULTI-TENANT: hydrates to the active artist's name. */}
             <h2 className="text-emerald-400 uppercase tracking-[0.2em] text-xl md:text-2xl font-black mb-6">
-              James Rodney Arms Jr.
+              {heroName}
             </h2>
 
             {/* MISSION STATEMENT — 100% sync focus, zero legal friction */}

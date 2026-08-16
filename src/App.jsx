@@ -1,5 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import PlayerBar from './components/PlayerBar';
 
 // ⚡ V24.2 ROUTE-BASED CODE SPLITTING — each route is a lazy chunk.
 // Only the chunk for the active route is fetched; the rest load on demand.
@@ -24,9 +25,16 @@ function RouteFallback() {
 export default function App() {
   return (
     <BrowserRouter>
+      {/* ⚡ ZERO-CRASH AUDIO RULE: PlayerBar lives OUTSIDE <Routes> so URL
+          navigation never unmounts the global audio engine. Playback state
+          survives every route transition. */}
+      <PlayerBar />
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          {/* ⚡ MULTI-TENANT DYNAMIC ROUTING: /vault/:artistId hydrates a
+              dedicated, isolated catalog page for the selected artist. */}
+          <Route path="/vault/:artistId" element={<HomePage />} />
           <Route path="/mission" element={<Mission />} />
         </Routes>
       </Suspense>

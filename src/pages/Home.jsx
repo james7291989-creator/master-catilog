@@ -1,10 +1,11 @@
 import HeroSection from '../components/HeroSection';
 import Vault from '../components/Vault';
-import PlayerBar from '../components/PlayerBar';
 
 // ⚡ V24.2 HOME ROUTE — extracted from App.jsx into its own lazy chunk.
-// Background + Hero + Vault + PlayerBar all render here; the Mission route
-// loads independently so the home page never pays for Mission's chunk.
+// Background + Hero + Vault all render here; the Mission route loads
+// independently so the home page never pays for Mission's chunk.
+// ⚡ ZERO-CRASH AUDIO RULE: PlayerBar is NOT rendered here — it lives
+// globally in App.jsx OUTSIDE <Routes> so navigation never kills audio.
 export default function Home() {
   return (
     <div className="min-h-screen bg-black text-white font-body pb-44 lg:pb-52 overflow-x-hidden">
@@ -24,10 +25,6 @@ export default function Home() {
         <HeroSection />
         <Vault />
       </div>
-      {/* ⚡ APEX PLAYER INSULATION: fixed glass chassis sits above all
-          content, insulated by the pb-44/lg:pb-52 viewport clearance so
-          no tracklist item or bio section is ever covered on scroll. */}
-      <PlayerBar />
     </div>
   );
 }

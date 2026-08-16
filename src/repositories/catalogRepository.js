@@ -10,6 +10,8 @@
  *  - Cursor-based pagination (keyset) for high-throughput tenant grids.
  *  - In-memory TTL cache (Redis-style) to prevent redundant round-trips.
  *  - Strict input validation on all query parameters.
+ *  - ⚡ MULTI-TENANT ISOLATION: every catalog query is scoped by artist_id
+ *    so guest vaults can never leak into the master tenant's rows.
  */
 
 import { supabase } from '../utils/supabaseClient';
@@ -79,6 +81,8 @@ function validatePagination({ limit, cursor, sortBy, sortDir }) {
  * @param {'asc'|'desc'} [params.sortDir='asc'] - sort direction
  * @param {string} [params.search=''] - optional search filter
  * @param {string} [params.mood=''] - optional mood filter
+ * @param {string|null} [params.artistId=null] - ⚡ MULTI-TENANT: scope to a
+ *   specific artist's catalog. When null, the master tenant is used.
  * @returns {Promise<{rows: Array, nextCursor: string|null, hasMore: boolean}>}
  */
 export async function fetchCatalogPage({
@@ -88,12 +92,13 @@ export async function fetchCatalogPage({
   sortDir = 'asc',
   search = '',
   mood = '',
+  artistId = null,
 } = {}) {
   const { limit: safeLimit, cursor: safeCursor, sortBy: safeSortBy, sortDir: safeSortDir } =
     validatePagination({ limit, cursor, sortBy, sortDir });
 
-  // Cache key includes every filter dimension + cursor (tenant-scoped).
-  const cacheKey = `catalog:${safeSortBy}:${safeSortDir}:${safeLimit}:${safeCursor ?? 'start'}:${search}:${mood}`;
+  // Cache key includes every filter dimension + cursor + tenant (artist-scoped).
+  const cacheKey = `catalog:${safeSortBy}:${safeSortDir}:${safeLimit}:${safeCursor ?? 'start'}:${search}:${mood}:${artistId ?? 'master'}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
@@ -102,6 +107,14 @@ export async function fetchCatalogPage({
     .select('*')
     .order(safeSortBy, { ascending: safeSortDir === 'asc' })
     .limit(safeLimit + 1); // fetch one extra to detect hasMore
+
+  // ⚡ MULTI-TENANT ISOLATION: always scope by artist_id. When no artistId
+  // is supplied, the master tenant's rows are returned (never all tenants).
+  if (artistId) {
+    query = query.eq('artist_id', artistId);
+  } else {
+    query = query.eq('artist_id', MASTER_TENANT_ID);
+  }
 
   // Keyset cursor: filter on the sort column strictly greater/less than cursor.
   if (safeCursor) {
@@ -143,20 +156,69 @@ export async function fetchCatalogPage({
 /**
  * Fetches the full catalog (used for mood filter extraction).
  * Cached with a short TTL to avoid hammering the DB on every keystroke.
+ *
+ * ⚡ MULTI-TENANT: scoped by artist_id so guest vaults only see their rows.
+ *
+ * @param {string|null} [artistId=null] - tenant scope. Null = master tenant.
  */
-export async function fetchAllCatalog() {
-  const cacheKey = 'catalog:all';
+export async function fetchAllCatalog(artistId = null) {
+  const cacheKey = `catalog:all:${artistId ?? 'master'}`;
   const cached = cacheGet(cacheKey);
   if (cached) return cached;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('sync_catalog')
-    .select('id, track_title, mood, bpm, key, asset_type, file_name')
+    .select('id, track_title, mood, bpm, key, asset_type, file_name, artist_id')
     .order('track_title', { ascending: true });
+
+  // ⚡ MULTI-TENANT ISOLATION: always scope by artist_id.
+  if (artistId) {
+    query = query.eq('artist_id', artistId);
+  } else {
+    query = query.eq('artist_id', MASTER_TENANT_ID);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     logError('catalog.repo.all_fetch_failed', { message: error.message });
     throw new Error('CATALOG_QUERY_FAILED');
+  }
+
+  const result = data || [];
+  cacheSet(cacheKey, result, 60_000); // 60s TTL
+  return result;
+}
+
+// ---------------------------------------------------------------------------
+// ⚡ MULTI-TENANT ARTISTS LEDGER
+// ---------------------------------------------------------------------------
+
+/**
+ * The master tenant (James Rodney Arms Jr.) — the root catalog owner.
+ * All un-scoped queries resolve to this artist_id.
+ */
+export const MASTER_TENANT_ID = '73c8c5dd-3f31-4240-9896-db9cae5ff1f2';
+
+/**
+ * Fetches the full artists ledger from Supabase.
+ * Used by the global navigation dropdown to render guest catalog options.
+ *
+ * @returns {Promise<Array<{id: string, artist_name: string, hero_bg_image: string|null}>>}
+ */
+export async function fetchArtistsLedger() {
+  const cacheKey = 'artists:ledger';
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
+  const { data, error } = await supabase
+    .from('artists')
+    .select('id, artist_name, hero_bg_image')
+    .order('artist_name', { ascending: true });
+
+  if (error) {
+    logError('artists.repo.ledger_fetch_failed', { message: error.message });
+    throw new Error('ARTISTS_LEDGER_FETCH_FAILED');
   }
 
   const result = data || [];

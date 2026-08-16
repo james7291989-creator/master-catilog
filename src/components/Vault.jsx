@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, Disc } from 'lucide-react';
+import { useParams } from 'react-router-dom';
 import usePlayerStore from '../store/usePlayerStore';
 import LicenseModal from './LicenseModal';
 import TestimonyVault from './TestimonyVault';
@@ -10,7 +11,7 @@ import sanitizeFilename from '../utils/sanitizeFilename';
 import { resolveTrackAudioUrl } from '../utils/resolveAudioUrl';
 import { sanitizeRecord } from '../utils/sanitizeText';
 import { logError } from '../utils/structuredLog';
-import { getCatalogAll, getUniqueMoods } from '../services/catalogService';
+import { getCatalogAll, getUniqueMoods, getArtistsLedger } from '../services/catalogService';
 
 export default function Vault() {
   const activeTrack = usePlayerStore(state => state.activeTrack);
@@ -26,27 +27,54 @@ export default function Vault() {
   const [audioError, setAudioError] = useState(null);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  // ⚡ MULTI-TENANT DYNAMIC ROUTING: extract the active artistId from the URL.
+  const { artistId } = useParams();
+  // ⚡ MULTI-TENANT ACTIVE ARTIST: resolved from the ledger for header hydration.
+  const [activeArtist, setActiveArtist] = useState(null);
 
-  // 1. FETCH EXCLUSIVELY FROM THE REAL CATALOG
+  // ⚡ MULTI-TENANT ARTIST RESOLUTION: fetch the ledger once and resolve the
+  // active artist for the Vault header. Falls back to the master tenant.
+  useEffect(() => {
+    let cancelled = false;
+    getArtistsLedger()
+      .then((rows) => {
+        if (cancelled) return;
+        if (!artistId) {
+          setActiveArtist(null);
+          return;
+        }
+        const match = (rows || []).find((a) => a.id === artistId);
+        setActiveArtist(match || null);
+      })
+      .catch(() => {
+        if (!cancelled) setActiveArtist(null);
+      });
+    return () => { cancelled = true; };
+  }, [artistId]);
+
+  // 1. FETCH EXCLUSIVELY FROM THE REAL CATALOG — ⚡ MULTI-TENANT ISOLATED
   // ⚡ CLEAN ARCHITECTURE: Delivery layer depends on the Service interface,
   // never on Supabase directly. The Service handles caching + pagination.
+  // ⚡ TENANT SCOPING: when artistId is present, only that artist's rows are
+  // fetched. When absent, the master tenant's rows are returned.
   useEffect(() => {
     const fetchCatalog = async () => {
       try {
-        const data = await getCatalogAll();
+        const data = await getCatalogAll(artistId);
         // ⚡ FORTRESS PROTOCOL: sanitize every tenant-supplied string field
         // before it enters the data grid (XSS defense-in-depth).
         setTracks((data || []).map(sanitizeRecord));
       } catch (error) {
         logError('vault.catalog_fetch_failed', {
           message: error?.message ?? 'unknown error',
+          artistId: artistId ?? 'master',
         });
       } finally {
         setLoading(false);
       }
     };
     fetchCatalog();
-  }, []);
+  }, [artistId]);
 
   // 2. AGGRESSIVE STRING CLEANER
   const formatTrackTitle = (rawTitle) => {
@@ -130,11 +158,12 @@ export default function Vault() {
 
   // DYNAMIC EXTRACTION: pull unique moods/genres from the catalog array
   // ⚡ CLEAN ARCHITECTURE: mood extraction delegated to the Service layer.
+  // ⚡ MULTI-TENANT: moods are scoped to the active artist's catalog.
   const [uniqueMoods, setUniqueMoods] = useState(['All']);
 
   useEffect(() => {
     let cancelled = false;
-    getUniqueMoods()
+    getUniqueMoods(artistId)
       .then((moods) => {
         if (!cancelled) setUniqueMoods(moods);
       })
@@ -142,7 +171,7 @@ export default function Vault() {
         if (!cancelled) setUniqueMoods(['All']);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [artistId]);
 
   // MEMOIZATION: filtered track mapping array bound to activeFilter + searchQuery
   // ⚡ GLOBAL REAL-TIME SEARCH — matches against track_title, genre_mood/mood,
@@ -172,14 +201,20 @@ export default function Vault() {
     }
   }, [filteredTracks, setPlaylist]);
 
+  // ⚡ MULTI-TENANT VAULT HEADER: reflect the active artist's name.
+  const vaultTitle = activeArtist?.artist_name
+    ? `${activeArtist.artist_name} Vault`
+    : 'The Vault';
+
   return (
     <div id="vault" className="max-w-7xl mx-auto px-6 py-12">
-        {/* HEADER — stripped of all borders and colors */}
+        {/* HEADER — stripped of all borders and colors
+            ⚡ MULTI-TENANT: hydrates to the active artist's name. */}
         <div className="mb-8 flex justify-between items-center pb-4">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight text-white">The Vault</h2>
+            <h2 className="text-3xl font-bold tracking-tight text-white">{vaultTitle}</h2>
             <p className="text-sm text-zinc-400 mt-2 tracking-wide max-w-2xl">
-              Tier-1 Music Supervisor Sync Catalog — 20 Master Recordings. 
+              Tier-1 Music Supervisor Sync Catalog — {tracks.length} Master Recordings. 
               <br className="hidden md:block"/>
               100% Independent One-Stop Clearance. <span className="text-emerald-400 font-bold ml-1">BMI IPI: 551288873</span>
             </p>
